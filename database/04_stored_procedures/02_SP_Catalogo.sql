@@ -231,7 +231,7 @@
         SELECT                                                                                                      
             v.IDVariante,                                                                                           
             v.SKU,                                                                                                  
-            v.Nombre,                                                                                               
+            v.NombreVariante AS Nombre,                                                                                               
             v.Talla,                                                                                                
             v.Color,                                                                                                
             v.Precio,                                                                                               

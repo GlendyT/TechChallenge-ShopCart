@@ -255,19 +255,17 @@
             INNER JOIN Productos pr ON v.IDProducto = pr.IDProducto                                                 
             WHERE cd.IDCarrito = @IDCarrito AND pr.IDCategoria = @IDCategoriaRestringida;                           
                                                                                                                     
-            IF @SubtotalAplicable <= 0                                                                              
-            BEGIN                                                                                                   
-                RAISERROR('El cupón aplica exclusivamente a productos de una categoría que no está en tu carrito.', 
-                ￹16, 1);                                                                                             
-                RETURN;                                                                                             
-            END                                                                                                     
-        END                                                                                                         
-                                                                                                                    
-        -- Validar monto mínimo de compra                                                                           
-        IF @SubtotalAplicable < @MontoMinimoCompra                                                                  
-        BEGIN                                                                                                       
-            DECLARE @MsgMinimo NVARCHAR(200) = FORMATMESSAGE('El cupón requiere una compra mínima aplicable de Q%s  
-            ￹(actual: Q%s).',                                                                                        
+            IF @SubtotalAplicable <= 0
+            BEGIN
+                RAISERROR('El cupón aplica exclusivamente a productos de una categoría que no está en tu carrito.', 16, 1);
+                RETURN;
+            END
+        END
+
+        -- Validar monto mínimo de compra
+        IF @SubtotalAplicable < @MontoMinimoCompra
+        BEGIN
+            DECLARE @MsgMinimo NVARCHAR(200) = FORMATMESSAGE('El cupón requiere una compra mínima aplicable de Q%s (actual: Q%s).',                                                                                        
                 CONVERT(NVARCHAR(20), @MontoMinimoCompra),                                                          
                 CONVERT(NVARCHAR(20), @SubtotalAplicable)                                                           
             );                                                                                                      
