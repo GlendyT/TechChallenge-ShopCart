@@ -2,7 +2,7 @@
 
 API REST para una plataforma de comercio electrónico. El backend está construido con Node.js, Express y TypeScript; SQL Server concentra el modelo de datos y las reglas transaccionales mediante procedimientos almacenados. La moneda de negocio es GTQ y los precios consideran IVA del 12%.
 
-> Este documento describe el estado observado en el repositorio: `backend/src`, `database/`, `docs/` y `local-documentation/`. Los diagramas representan las relaciones declaradas en DDL y los flujos presentes en rutas/procedimientos; los sistemas de pago externos no están integrados en el código revisado.
+> Este documento describe el estado observado en el repositorio: `backend/src`, `database/` y `docs/`. Los diagramas representan las relaciones declaradas en DDL y los flujos presentes en rutas/procedimientos; los sistemas de pago externos no están integrados en el código revisado.
 
 ## Índice
 
@@ -47,8 +47,7 @@ flowchart LR
 | `backend/dist/` | JavaScript generado por `pnpm build`; no editar manualmente. |
 | `backend/node_modules/` | Dependencias instaladas por pnpm; no versionar. |
 | `database/` | Scripts SQL de instalación por fases y carga de datos de ejemplo. |
-| `docs/architecture-decisions/` | ADR-001 y ADR-002, decisiones técnicas del proyecto. |
-| `local-documentation/` | ADR-003 sobre modularidad y notas/comandos locales para Docker/SQL Server. |
+| `docs/architecture-decisions/` | ADR-001, ADR-002 y ADR-003, decisiones técnicas del proyecto. |
 | `docker-compose.yml` | Define SQL Server y el backend. El backend usa la imagen publicada `glendyt/shopcart-backend:1.0.0` y conserva `build` para reconstruirla desde el código local. |
 | `backend/Dockerfile` | Construcción multi-stage de la API: instala dependencias, compila TypeScript y crea la imagen de ejecución. |
 | `backend/pnpm-workspace.yaml` | Política de ejecución de scripts de dependencias durante la instalación en Docker (`esbuild` permitido). |
@@ -184,7 +183,7 @@ docker compose ps
 
 La API queda en `http://localhost:3000`; Swagger en `/api/docs`. El backend espera a que el contenedor SQL Server responda al healthcheck. El volumen `mssql_data` conserva los datos entre reinicios. El contenedor `backend` requiere `backend/.env` para los secretos JWT; no publiques ese archivo. El `.env` raíz proporciona `DB_PASSWORD` y `DB_NAME` a Compose.
 
-**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08 y `05_seed/01_Seed_DatosIniciales.sql`. Los comandos PowerShell de [local-documentation/dockercomands.md](local-documentation/dockercomands.md) ilustran cómo enviarlos con `sqlcmd`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
+**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08 y `05_seed/01_Seed_DatosIniciales.sql`. Los scripts pueden enviarse mediante `sqlcmd` ejecutando cada archivo SQL en orden contra el contenedor `shopcart-sqlserver`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
 
 Para detener los servicios conserva los datos con `docker compose down`; para borrar también el volumen y la base local usa `docker compose down -v` (esto elimina los datos persistidos).
 
@@ -414,8 +413,7 @@ flowchart LR
 
 - [ADR-001: identificadores internos vs. públicos](docs/architecture-decisions/ADR-001-identificadores-internos-vs-publicos.md): claves internas numéricas para relaciones eficientes; UUID `CodigoPublico` para exponer recursos sin publicar la secuencia interna.
 - [ADR-002: generación de series temporales con tally table](docs/architecture-decisions/ADR-002-generacion-series-temporales-tally-table.md): generación de periodos para reportes sin depender de bucles iterativos.
-- [ADR-003: arquitectura modular por dominio](local-documentation/ADR-003-arquitectura-modular-por-dominio.md): separación del backend por capacidades funcionales y capas de transporte, controlador y persistencia.
-- [Notas de comandos Docker/SQL](local-documentation/dockercomands.md): ejecución local manual de scripts y consultas de diagnóstico.
+- [ADR-003: arquitectura modular por dominio](docs/architecture-decisions/ADR-003-arquitectura-modular-por-dominio.md): separación del backend por capacidades funcionales y capas de transporte, controlador y persistencia.
 
 ## Limitaciones conocidas del alcance
 
