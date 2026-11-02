@@ -1,18 +1,69 @@
-                                                                                                                    
-    services:                                                                                                       
-      sqlserver:                                                                                                    
-        image: mcr.microsoft.com/mssql/server:2022-latest                                                           
-        container_name: shopcart-sqlserver                                                                          
-        restart: always                                                                                             
-        environment:                                                                                                
-          ACCEPT_EULA: "Y"                                                                                          
-          MSSQL_SA_PASSWORD: "TuPasswordSeguro123!"                                                                 
-          MSSQL_PID: "Developer"                                                                                    
-        ports:                                                                                                      
-          - "1433:1433"                                                                                             
-        volumes:                                                                                                    
-          - mssql_data:/var/opt/mssql                                                                               
-                                                                                                                    
-    volumes:                                                                                                        
-      mssql_data:                                                                                                   
-        driver: local  
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: shopcart-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-TuPasswordSeguro123!}
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test:
+        - CMD
+        - /opt/mssql-tools18/bin/sqlcmd
+        - -S
+        - localhost
+        - -U
+        - sa
+        - -P
+        - ${DB_PASSWORD:-TuPasswordSeguro123!}
+        - -C
+        - -Q
+        - SELECT 1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  backend:
+    image: glendyt/shopcart-backend:1.0.0
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: shopcart-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_SERVER: sqlserver
+      DB_PORT: 1433
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD:-TuPasswordSeguro123!}
+      DB_NAME: ${DB_NAME:-ShopCartDB}
+      DB_ENCRYPT: "false"
+      DB_TRUST_SERVER_CERTIFICATE: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  mssql_data:
+    driver: local

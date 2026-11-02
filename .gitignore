@@ -1,1 +1,7 @@
-.local-documentation
+local-documentation/
+.local-documentation/
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
