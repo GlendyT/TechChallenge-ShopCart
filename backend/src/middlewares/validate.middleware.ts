@@ -1,0 +1,19 @@
+  import { Request, Response, NextFunction } from 'express';                                                                                                                                                            
+    import { AnyZodObject, ZodEffects } from 'zod';                                                                                                                                                                       
+                                                                                                                                                                                                                          
+    type ValidationTarget = 'body' | 'query' | 'params';                                                                                                                                                                  
+                                                                                                                                                                                                                          
+    export const validateRequest = (                                                                                                                                                                                      
+      schema: AnyZodObject | ZodEffects<AnyZodObject>,                                                                                                                                                                    
+      target: ValidationTarget = 'body'                                                                                                                                                                                   
+    ) => {                                                                                                                                                                                                                
+      return (req: Request, _res: Response, next: NextFunction): void => {                                                                                                                                                
+        try {                                                                                                                                                                                                             
+          const parsed = schema.parse(req[target]);                                                                                                                                                                       
+          req[target] = parsed;                                                                                                                                                                                           
+          next();                                                                                                                                                                                                         
+        } catch (err) {                                                                                                                                                                                                   
+          next(err);                                                                                                                                                                                                      
+        }                                                                                                                                                                                                                 
+      };                                                                                                                                                                                                                  
+    };    

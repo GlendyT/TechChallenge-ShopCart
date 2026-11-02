@@ -36,31 +36,41 @@
     -- 2. SEED: USUARIOS INICIALES (RF-01)                                                                          
     -- Hashes bcrypt correspondientes a 'Admin123!', 'Operador123!' y 'Cliente123!'                                 
     -- ----------------------------------------------------------------------------                                 
-    DECLARE @HashAdmin NVARCHAR(255) = '$2a$10$fWn5g72kK/yS01s2V.O6/O4o2Tsk5R5J8c7eF8vU.QpI3mF6GzD9e'; -- Admin123! 
-    DECLARE @HashOperador NVARCHAR(255) = '$2a$10$wO3mY2eL0vF9rP.K5xZ2reY1gQ9wA4uB8vX3yZ7oP.QeI1mK4GyEe'; --        
-    Operador123!                                                                                                    
-    DECLARE @HashCliente NVARCHAR(255) = '$2a$10$yN1vX9dL8kP7mQ.T3vZ5yeW3hR7zA2uC6wY1xX5nO.PeI9mL2GyDe'; --         
-    Cliente123!                                                                                                     
-                                                                                                                    
-    -- Usuario Administrador                                                                                        
-    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'admin@shopcart.gt')                                       
-    BEGIN                                                                                                           
-        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)                      
-        VALUES (@IDRolAdmin, 'Don Arturo', 'Administrador', 'admin@shopcart.gt', @HashAdmin, '50255551000', 1);     
-    END                                                                                                             
-                                                                                                                    
-    -- Usuario Operador                                                                                             
-    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'operador@shopcart.gt')                                    
-    BEGIN                                                                                                           
-        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)                      
-        VALUES (@IDRolOperador, 'Carlos', 'Logística', 'operador@shopcart.gt', @HashOperador, '50255552000', 1);    
-    END                                                                                                             
-                                                                                                                    
-    -- Usuario Cliente                                                                                              
-    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'cliente@shopcart.gt')                                     
-    BEGIN                                                                                                           
-        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)                      
-        VALUES (@IDRolCliente, 'Mario', 'Gómez', 'cliente@shopcart.gt', @HashCliente, '50255553000', 1);            
+    DECLARE @HashAdmin NVARCHAR(255) = '$2a$10$51izpHArW7xBTLvOAsJGIujhEuwy25FuLLCSY9F3z/v3AeEnZKeKW';
+    DECLARE @HashOperador NVARCHAR(255) = '$2a$10$7cmoScE6so9gcQo6WMsONuh47EGh/EgT9tUPCChFqMSnc9xbKae0q';
+    DECLARE @HashCliente NVARCHAR(255) = '$2a$10$G10TsOi6ZGAwegNP9y1kYO5.p7xplU364FDeraMKYmNN.1H4CTRiy';
+
+    -- Usuario Administrador
+    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'admin@shopcart.gt')
+    BEGIN
+        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)
+        VALUES (@IDRolAdmin, 'Don Arturo', 'Administrador', 'admin@shopcart.gt', @HashAdmin, '50255551000', 1);
+    END
+    ELSE
+    BEGIN
+        UPDATE Usuarios SET PasswordHash = @HashAdmin WHERE Correo = 'admin@shopcart.gt';
+    END
+
+    -- Usuario Operador
+    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'operador@shopcart.gt')
+    BEGIN
+        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)
+        VALUES (@IDRolOperador, 'Carlos', 'Logística', 'operador@shopcart.gt', @HashOperador, '50255552000', 1);
+    END
+    ELSE
+    BEGIN
+        UPDATE Usuarios SET PasswordHash = @HashOperador WHERE Correo = 'operador@shopcart.gt';
+    END
+
+    -- Usuario Cliente
+    IF NOT EXISTS (SELECT 1 FROM Usuarios WHERE Correo = 'cliente@shopcart.gt')
+    BEGIN
+        INSERT INTO Usuarios (IDRol, Nombre, Apellido, Correo, PasswordHash, Telefono, Activo)
+        VALUES (@IDRolCliente, 'Mario', 'Gómez', 'cliente@shopcart.gt', @HashCliente, '50255553000', 1);
+    END
+    ELSE
+    BEGIN
+        UPDATE Usuarios SET PasswordHash = @HashCliente WHERE Correo = 'cliente@shopcart.gt';
     END                                                                                                             
                                                                                                                     
     DECLARE @IDUsuarioAdmin INT = (SELECT IDUsuario FROM Usuarios WHERE Correo = 'admin@shopcart.gt');              

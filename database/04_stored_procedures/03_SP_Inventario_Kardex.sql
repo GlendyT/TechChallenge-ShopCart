@@ -198,10 +198,8 @@
             inv.VarianteActiva,                                                                                     
             COUNT(1) OVER() AS TotalRegistros                                                                       
         FROM VW_Inventario_ExistenciasDisponibles inv                                                               
-        WHERE (@IDCategoria IS NULL OR inv.IDProducto IN (SELECT p.IDProducto FROM Productos p WHERE p.IDCategoria =
-        ￹@IDCategoria))                                                                                              
-          AND (@Busqueda IS NULL OR inv.SKU LIKE '%' + @Busqueda + '%' OR inv.NombreProducto LIKE '%' + @Busqueda + 
-          ￹'%')                                                                                                      
+         WHERE (@IDCategoria IS NULL OR inv.IDProducto IN (SELECT p.IDProducto FROM Productos p WHERE p.IDCategoria = @IDCategoria))                                                                                   
+              AND (@Busqueda IS NULL OR inv.SKU LIKE '%' + @Busqueda + '%' OR inv.NombreProducto LIKE '%' + @Busqueda + '%')                                                                                                      
           AND (@SoloBajoStock = 0 OR inv.ExistenciaDisponible <= 5)                                                 
         ORDER BY inv.ExistenciaDisponible ASC, inv.NombreProducto ASC                                               
         OFFSET @Offset ROWS                                                                                         
