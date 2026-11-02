@@ -48,6 +48,7 @@ flowchart LR
 | `backend/node_modules/` | Dependencias instaladas por pnpm; no versionar. |
 | `database/` | Scripts SQL de instalación por fases y carga de datos de ejemplo. |
 | `docs/architecture-decisions/` | ADR-001, ADR-002 y ADR-003, decisiones técnicas del proyecto. |
+| `docs/guia-pruebas-swagger-y-docker.md` | Guía operativa de comandos Docker y pruebas paso a paso en Swagger UI. |
 | `docker-compose.yml` | Define SQL Server y el backend. El backend usa la imagen publicada `glendyt/shopcart-backend:1.0.0` y conserva `build` para reconstruirla desde el código local. |
 | `backend/Dockerfile` | Construcción multi-stage de la API: instala dependencias, compila TypeScript y crea la imagen de ejecución. |
 | `backend/pnpm-workspace.yaml` | Política de ejecución de scripts de dependencias durante la instalación en Docker (`esbuild` permitido). |
