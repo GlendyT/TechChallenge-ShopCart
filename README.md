@@ -49,7 +49,10 @@ flowchart LR
 | `database/` | Scripts SQL de instalación por fases y carga de datos de ejemplo. |
 | `docs/architecture-decisions/` | ADR-001 y ADR-002, decisiones técnicas del proyecto. |
 | `local-documentation/` | ADR-003 sobre modularidad y notas/comandos locales para Docker/SQL Server. |
-| `docker-compose.yml` | Definición de servicios locales con Docker Compose. |
+| `docker-compose.yml` | Define SQL Server y el backend. El backend usa la imagen publicada `glendyt/shopcart-backend:1.0.0` y conserva `build` para reconstruirla desde el código local. |
+| `backend/Dockerfile` | Construcción multi-stage de la API: instala dependencias, compila TypeScript y crea la imagen de ejecución. |
+| `backend/pnpm-workspace.yaml` | Política de ejecución de scripts de dependencias durante la instalación en Docker (`esbuild` permitido). |
+| `.env.docker.example` | Plantilla local de variables que Compose usa para SQL Server y la conexión entre servicios. |
 | `Reto_ShopCart_Enunciado.md` | Enunciado funcional original del reto. |
 | `README.md` | Guía técnica y operativa del repositorio. |
 
@@ -133,12 +136,57 @@ Las tablas de asociación y snapshot conservan detalle histórico. Por ejemplo, 
 - SQL Server accesible desde el backend (SQL Server 2019+ recomendado por la configuración de ejemplo).
 - Docker Compose si se quiere levantar el servicio SQL local declarado en `docker-compose.yml`.
 
-### Preparar la base
+### Descargar y ejecutar la imagen publicada
 
-1. Inicia el SQL Server local con `docker compose up -d` (revisa `docker-compose.yml` para nombre, puerto y credenciales configurados).
-2. Crea la base `ShopCartDB` si no fue creada por el entorno.
-3. Ejecuta en este orden los scripts: `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, todos los SP numerados del 01 al 08 y finalmente `05_seed/01_Seed_DatosIniciales.sql`.
-4. Los comandos PowerShell de `local-documentation/dockercomands.md` muestran una forma de enviarlos al contenedor con `sqlcmd`; actualiza usuario/contraseña según tu entorno. No uses credenciales de ejemplo en ambientes públicos.
+La imagen del backend está publicada en Docker Hub como [`glendyt/shopcart-backend:1.0.0`](https://hub.docker.com/r/glendyt/shopcart-backend). Para descargarla manualmente:
+
+```powershell
+docker login
+docker pull glendyt/shopcart-backend:1.0.0
+```
+
+Para arrancar el sistema en otra máquina, clona/descarga este repositorio (se requiere el Compose y los scripts SQL), prepara los archivos de configuración de abajo y luego ejecuta `docker compose pull backend` seguido de `docker compose up -d --no-build`. El flag `--no-build` hace que Compose utilice la imagen descargada en Docker Hub. La primera vez, el esquema SQL debe inicializarse como se describe más adelante.
+
+### Construir y publicar una versión nueva
+
+Con sesión iniciada en Docker Hub, desde la raíz del repositorio:
+
+```powershell
+docker build -t glendyt/shopcart-backend:1.0.0 ./backend
+docker push glendyt/shopcart-backend:1.0.0
+```
+
+Al publicar una nueva versión, incrementa la etiqueta (por ejemplo `1.0.1`) en el comando `docker build` y en `docker-compose.yml`, y vuelve a ejecutar `docker push`. Compose también puede reconstruir desde el código local con `docker compose up -d --build`; el bloque `build` etiqueta la imagen local con el nombre indicado en `image`.
+
+### Arranque con Docker Compose
+
+El `docker-compose.yml` levanta SQL Server y la API. Para usar Docker, desde la raíz del repositorio:
+
+```powershell
+Copy-Item .env.docker.example .env
+Copy-Item backend/.env.example backend/.env
+```
+
+Reemplaza `DB_PASSWORD` en el `.env` raíz por una contraseña propia que cumpla los requisitos de SQL Server (mayúscula, minúscula, número y símbolo, al menos 8 caracteres). En `backend/.env`, configura `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` con claves propias de al menos 16 caracteres. Luego arranca los servicios:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+El comando anterior construye la imagen desde el Dockerfile local. Para usar la versión ya publicada en Docker Hub en lugar de reconstruir el código:
+
+```powershell
+docker compose pull backend
+docker compose up -d --no-build
+docker compose ps
+```
+
+La API queda en `http://localhost:3000`; Swagger en `/api/docs`. El backend espera a que el contenedor SQL Server responda al healthcheck. El volumen `mssql_data` conserva los datos entre reinicios. El contenedor `backend` requiere `backend/.env` para los secretos JWT; no publiques ese archivo. El `.env` raíz proporciona `DB_PASSWORD` y `DB_NAME` a Compose.
+
+**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08 y `05_seed/01_Seed_DatosIniciales.sql`. Los comandos PowerShell de [local-documentation/dockercomands.md](local-documentation/dockercomands.md) ilustran cómo enviarlos con `sqlcmd`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
+
+Para detener los servicios conserva los datos con `docker compose down`; para borrar también el volumen y la base local usa `docker compose down -v` (esto elimina los datos persistidos).
 
 ### Configurar y ejecutar API
 
