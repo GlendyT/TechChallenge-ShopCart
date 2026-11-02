@@ -39,7 +39,7 @@ export const errorHandler = (
     return;
   }
 
-  // 3. Errores de reglas de negocio lanzados con RAISERROR desde SQL Server (Error 50000)
+  // 3. Errores de reglas de negocio lanzados con RAISERROR desde SQL Server (Error 50000) Cuando un STORE PROCEDURE lanza un error con RAISERROR, se puede capturar en Node.js y manejarlo de manera adecuada. Esto permite que los errores de negocio definidos en la base de datos se propaguen al backend y se manejen de forma consistente.
   const sqlErr = err as SqlCustomError;
   if (sqlErr.number === 50000) {
     const msg = sqlErr.message;
@@ -58,7 +58,7 @@ export const errorHandler = (
     return;
   }
 
-  // 4. Error interno no controlado (Ocultar detalles técnicos en producción)
+  // 4. Error interno no controlado (Ocultar detalles técnicos en producción), oculta detalles tecnicos para no exponer vulnerabilidades en producción, pero los muestra en desarrollo para facilitar la depuración.
   console.error("❌ Error no controlado:", err);
 
   res.status(500).json({

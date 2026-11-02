@@ -13,9 +13,9 @@ const dbConfig: sql.config = {
     enableArithAbort: true,
   },
   pool: {
-    max: 20,
-    min: 2,
-    idleTimeoutMillis: 30000,
+    max: 20, // maximo de 20 conexiones simultaneas abiertas
+    min: 2, // mantiene 2 contextiones siempre vivas para respuestas inmediatas
+    idleTimeoutMillis: 30000, // cierra conextiones inactivas despues de 30 segundos
   },
 };
 
