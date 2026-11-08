@@ -7,7 +7,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import type { UserRole } from "../api/client";
+import type { UserRole } from "../shared/auth/authTypes";
 
 interface NavigationItem {
   label: string;

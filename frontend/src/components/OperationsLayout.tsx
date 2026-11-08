@@ -1,7 +1,7 @@
 import { ArrowLeft, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
+import { useAuth } from '../shared/auth/useAuth'
 import { RoleNavigation } from './RoleNavigation'
 import { Button } from './ui/button'
 

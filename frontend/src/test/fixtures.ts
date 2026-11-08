@@ -1,4 +1,5 @@
-import type { Cart, Category, Product, ProductDetail } from '../catalog/types'
+import type { Category, Product, ProductDetail } from '../features/catalog/types/catalogTypes'
+import type { Cart } from '../features/cart/types/cartTypes'
 
 export const productCode = 'e025b2fb-0987-40ad-b0ce-9010dc8ccf2e'
 

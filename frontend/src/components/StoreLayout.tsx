@@ -1,20 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
 import { Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "../auth/useAuth";
-import { cartQueryKey, fetchCart } from "../catalog/cart";
+import { useAuth } from "../shared/auth/useAuth";
+import { useCart } from "../features/cart/hooks/useCart";
 import { Button } from "./ui/button";
 
 export function StoreLayout() {
   const { user, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const cart = useQuery({
-    queryKey: cartQueryKey,
-    queryFn: fetchCart,
-    retry: false,
-    staleTime: 20_000,
-  });
+  const cart = useCart();
   const cartCount = cart.data?.TotalArticulos ?? 0;
   const closeMenu = () => setIsMenuOpen(false);
 
