@@ -7,4 +7,11 @@ export const routePaths = {
   orderConfirmation: "/pedido-confirmado/:codigoPublico",
   checkout: "/checkout",
   account: "/cuenta",
+  operations: "/operaciones",
+  operationsOrders: "/operaciones/pedidos",
+  operationsInventory: "/operaciones/inventario",
+  operationsReports: "/operaciones/reportes",
+  administration: "/administracion",
+  administrationCatalog: "/administracion/catalogo",
+  administrationUsers: "/administracion/usuarios",
 } as const;

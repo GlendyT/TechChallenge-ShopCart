@@ -5,6 +5,7 @@ import {
   Routes,
 } from "react-router-dom";
 import { Button } from "../../components/ui/button";
+import { OperationsLayout } from "../../components/OperationsLayout";
 import { StoreLayout } from "../../components/StoreLayout";
 import { AccountPage } from "../../features/account/pages/AccountPage";
 import { AuthPage } from "../../features/auth/pages/AuthPage";
@@ -14,7 +15,13 @@ import { CheckoutPage } from "../../features/checkout/pages/CheckoutPage";
 import { OrderConfirmationRoute } from "../../features/checkout/routes/OrderConfirmationRoute";
 import { ProductRoute } from "../../features/catalog/routes/ProductRoute";
 import { RequireAuthentication } from "./guards/RequireAuthentication";
+import { RequireRole } from "./guards/RequireRole";
 import { routePaths } from "./routePaths";
+import { OrdersPage } from "../../features/operations/orders/pages/OrdersPage";
+import { InventoryPage } from "../../features/operations/inventory/pages/InventoryPage";
+import { ReportsPage } from "../../features/operations/reports/pages/ReportsPage";
+import { AdminCatalogPage } from "../../features/administration/pages/AdminCatalogPage";
+import { AdminUsersPage } from "../../features/administration/pages/AdminUsersPage";
 
 function RouteNotFound() {
   return (
@@ -36,6 +43,12 @@ function nestedRoutePath(path: string) {
   return path.startsWith("/") ? path.slice(1) : path;
 }
 
+function childRoutePath(parentPath: string, childPath: string) {
+  const parent = nestedRoutePath(parentPath);
+  const child = nestedRoutePath(childPath);
+  return child.slice(parent.length + 1);
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -54,6 +67,20 @@ function AppRoutes() {
           <Route path={nestedRoutePath(routePaths.account)} element={<AccountPage />} />
         </Route>
         <Route path="*" element={<RouteNotFound />} />
+      </Route>
+      <Route element={<RequireRole allowedRoles={["Operador", "Administrador"]} />}>
+        <Route path={nestedRoutePath(routePaths.operations)} element={<OperationsLayout />}>
+          <Route index element={<ReportsPage />} />
+          <Route path={childRoutePath(routePaths.operations, routePaths.operationsOrders)} element={<OrdersPage />} />
+          <Route path={childRoutePath(routePaths.operations, routePaths.operationsInventory)} element={<InventoryPage />} />
+          <Route path={childRoutePath(routePaths.operations, routePaths.operationsReports)} element={<ReportsPage />} />
+        </Route>
+      </Route>
+      <Route element={<RequireRole allowedRoles={["Administrador"]} />}>
+        <Route path={nestedRoutePath(routePaths.administration)} element={<OperationsLayout />}>
+          <Route path={childRoutePath(routePaths.administration, routePaths.administrationCatalog)} element={<AdminCatalogPage />} />
+          <Route path={childRoutePath(routePaths.administration, routePaths.administrationUsers)} element={<AdminUsersPage />} />
+        </Route>
       </Route>
     </Routes>
   );
