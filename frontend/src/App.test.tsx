@@ -1,17 +1,13 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
 
-describe('App starter', () => {
-  it('renders the page and responds to user interaction', async () => {
-    const user = userEvent.setup()
+describe('ShopCart storefront', () => {
+  it('shows the storefront and products returned by the catalog API', async () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'Get started' })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Count is 0' }))
-
-    expect(screen.getByRole('button', { name: 'Count is 1' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /los buenos momentos/i })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Camisa Oxford Slim Fit' })).toBeInTheDocument()
+    expect(screen.getByText(/249\.00/)).toBeInTheDocument()
   })
 })

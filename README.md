@@ -223,6 +223,30 @@ pnpm start      # Ejecuta dist/server.js
 
 La API ofrece `GET /api/health` y Swagger UI en `http://localhost:3000/api/docs` (ajusta el puerto si cambias `PORT`). El servidor solo comienza a aceptar solicitudes cuando la conexión inicial con SQL Server tiene éxito.
 
+### Configurar y ejecutar frontend
+
+El cliente web usa React, TypeScript, Vite y pnpm. Primero inicia SQL Server, aplica los scripts de `database/` y ejecuta la API siguiendo la sección anterior. Después, desde `frontend/`:
+
+```powershell
+pnpm install
+Copy-Item .env.example .env.local
+pnpm dev
+```
+
+`VITE_API_BASE_URL` apunta por defecto a `http://localhost:3000/api`. Ajusta el valor en `.env.local` si la API usa otro host o puerto. Las variables con prefijo `VITE_` son públicas y no deben contener secretos.
+
+Comprobaciones disponibles desde `frontend/`:
+
+```powershell
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run test:e2e
+pnpm run build
+```
+
+Vitest/Testing Library y Playwright simulan las respuestas de API para que sus pruebas no dependan de SQL Server. Para usar la tienda manualmente, el backend y la base de datos deben estar encendidos.
+
 ## API HTTP
 
 Todas las rutas están bajo `/api`. Las entradas se validan con Zod cuando la ruta declara esquema. Los permisos se aplican en middleware de rutas; `GET /api/health` es público.
