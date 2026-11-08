@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Textarea } from "../../../components/ui/textarea";
 import { PageState } from "../../../components/feedback/PageState";
 import { formatPrice } from "../../../lib/format";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { adminMutations } from "../hooks/useAdminData";
 import { useAdminCategories, useAdminCoupons, useAdminProducts, useAudit, useAdminMutation } from "../hooks/useAdminData";
 import type { AdminCategory, AdminCoupon, AdminProduct, AuditRecord } from "../types/adminTypes";
@@ -26,6 +27,7 @@ function formatDate(value: string) { return new Intl.DateTimeFormat("es-GT", { d
 export function AdminCatalogPage() {
   const [tab, setTab] = useState<CatalogTab>("categorias");
   const [productSearch, setProductSearch] = useState("");
+  const debouncedProductSearch = useDebouncedValue(productSearch);
   const [productPage, setProductPage] = useState(1);
   const [auditPage, setAuditPage] = useState(1);
   const [auditEntity, setAuditEntity] = useState("");
@@ -33,7 +35,7 @@ export function AdminCatalogPage() {
   const [auditStart, setAuditStart] = useState("");
   const [auditEnd, setAuditEnd] = useState("");
   const categories = useAdminCategories();
-  const products = useAdminProducts(productSearch, productPage, tab === "productos");
+  const products = useAdminProducts(debouncedProductSearch, productPage, tab === "productos");
   const coupons = useAdminCoupons(tab === "cupones");
   const auditParams = useMemo(() => {
     const params = new URLSearchParams({ pagina: String(auditPage), limite: "25" });

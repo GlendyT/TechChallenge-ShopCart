@@ -6,11 +6,13 @@ import { Input } from "../../../components/ui/input";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
 import { PageState } from "../../../components/feedback/PageState";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import { useAdminMutation, useAdminUsers, adminMutations } from "../hooks/useAdminData";
 
 export function AdminUsersPage() {
   const [search, setSearch] = useState("");
-  const users = useAdminUsers(search);
+  const debouncedSearch = useDebouncedValue(search);
+  const users = useAdminUsers(debouncedSearch);
   const updateState = useAdminMutation((input: { id: number; activo: boolean }) => adminMutations.setUserActive(input.id, input.activo), "users");
   const rows = users.data ?? [];
 

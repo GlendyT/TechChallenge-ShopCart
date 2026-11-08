@@ -1,9 +1,4 @@
-import {
-  BrowserRouter,
-  Link,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { OperationsLayout } from "../../components/OperationsLayout";
 import { StoreLayout } from "../../components/StoreLayout";
@@ -54,32 +49,85 @@ function AppRoutes() {
     <Routes>
       <Route element={<StoreLayout />}>
         <Route index element={<CatalogPage />} />
-        <Route path={nestedRoutePath(routePaths.product)} element={<ProductRoute />} />
+        <Route
+          path={nestedRoutePath(routePaths.product)}
+          element={<ProductRoute />}
+        />
         <Route path={nestedRoutePath(routePaths.cart)} element={<CartPage />} />
-        <Route path={nestedRoutePath(routePaths.signIn)} element={<AuthPage mode="signin" />} />
-        <Route path={nestedRoutePath(routePaths.signUp)} element={<AuthPage mode="signup" />} />
+        <Route
+          path={nestedRoutePath(routePaths.signIn)}
+          element={<AuthPage mode="signin" />}
+        />
+        <Route
+          path={nestedRoutePath(routePaths.signUp)}
+          element={<AuthPage mode="signup" />}
+        />
         <Route
           path={nestedRoutePath(routePaths.orderConfirmation)}
           element={<OrderConfirmationRoute />}
         />
         <Route element={<RequireAuthentication />}>
-          <Route path={nestedRoutePath(routePaths.checkout)} element={<CheckoutPage />} />
-          <Route path={nestedRoutePath(routePaths.account)} element={<AccountPage />} />
+          <Route
+            path={nestedRoutePath(routePaths.checkout)}
+            element={<CheckoutPage />}
+          />
+          <Route
+            path={nestedRoutePath(routePaths.account)}
+            element={<AccountPage />}
+          />
         </Route>
         <Route path="*" element={<RouteNotFound />} />
       </Route>
-      <Route element={<RequireRole allowedRoles={["Operador", "Administrador"]} />}>
-        <Route path={nestedRoutePath(routePaths.operations)} element={<OperationsLayout />}>
+      <Route
+        element={<RequireRole allowedRoles={["Operador", "Administrador"]} />}
+      >
+        <Route
+          path={nestedRoutePath(routePaths.operations)}
+          element={<OperationsLayout />}
+        >
           <Route index element={<ReportsPage />} />
-          <Route path={childRoutePath(routePaths.operations, routePaths.operationsOrders)} element={<OrdersPage />} />
-          <Route path={childRoutePath(routePaths.operations, routePaths.operationsInventory)} element={<InventoryPage />} />
-          <Route path={childRoutePath(routePaths.operations, routePaths.operationsReports)} element={<ReportsPage />} />
+          <Route
+            path={childRoutePath(
+              routePaths.operations,
+              routePaths.operationsOrders,
+            )}
+            element={<OrdersPage />}
+          />
+          <Route
+            path={childRoutePath(
+              routePaths.operations,
+              routePaths.operationsInventory,
+            )}
+            element={<InventoryPage />}
+          />
+          <Route
+            path={childRoutePath(
+              routePaths.operations,
+              routePaths.operationsReports,
+            )}
+            element={<ReportsPage />}
+          />
         </Route>
       </Route>
       <Route element={<RequireRole allowedRoles={["Administrador"]} />}>
-        <Route path={nestedRoutePath(routePaths.administration)} element={<OperationsLayout />}>
-          <Route path={childRoutePath(routePaths.administration, routePaths.administrationCatalog)} element={<AdminCatalogPage />} />
-          <Route path={childRoutePath(routePaths.administration, routePaths.administrationUsers)} element={<AdminUsersPage />} />
+        <Route
+          path={nestedRoutePath(routePaths.administration)}
+          element={<OperationsLayout />}
+        >
+          <Route
+            path={childRoutePath(
+              routePaths.administration,
+              routePaths.administrationCatalog,
+            )}
+            element={<AdminCatalogPage />}
+          />
+          <Route
+            path={childRoutePath(
+              routePaths.administration,
+              routePaths.administrationUsers,
+            )}
+            element={<AdminUsersPage />}
+          />
         </Route>
       </Route>
     </Routes>

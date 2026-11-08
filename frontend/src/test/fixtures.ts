@@ -4,7 +4,12 @@ import type { Cart } from '../features/cart/types/cartTypes'
 export const productCode = 'e025b2fb-0987-40ad-b0ce-9010dc8ccf2e'
 
 export const categories: Category[] = [
-  { IDCategoria: 1, Nombre: 'Caballeros', TotalProductos: 1 },
+  {
+    IDCategoria: 1,
+    Nombre: 'Caballeros',
+    Descripcion: 'Prendas y moda para hombres.',
+    TotalProductos: 1,
+  },
 ]
 
 export const products: Product[] = [

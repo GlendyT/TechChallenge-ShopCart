@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import type { CatalogFilters, CatalogSortOrder, PriceRange } from "../types/catalogTypes";
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 export const priceRanges: Array<{ value: PriceRange; label: string }> = [
   { value: "all", label: "Cualquier precio" },
@@ -11,31 +11,56 @@ export const priceRanges: Array<{ value: PriceRange; label: string }> = [
 ];
 
 export function useCatalogFilters() {
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlSearch = searchParams.get("busqueda") ?? "";
+  const urlCategory = searchParams.get("categoria") ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const debouncedSearchInput = useDebouncedValue(searchInput);
+  const [search, setSearch] = useState(urlSearch.trim());
+  const [categoryState, setCategoryState] = useState(urlCategory);
   const [order, setOrder] = useState<CatalogSortOrder>("RECIENTE");
   const [page, setPage] = useState(1);
   const [inStock, setInStock] = useState(false);
   const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timeout);
-  }, [searchInput]);
+    if (debouncedSearchInput !== searchInput) return;
+    setSearch(debouncedSearchInput.trim());
+    setPage(1);
+  }, [debouncedSearchInput, searchInput]);
+
+  useEffect(() => {
+    setSearchInput(urlSearch);
+    setSearch(urlSearch.trim());
+    setCategoryState(urlCategory);
+    setPage(1);
+  }, [urlCategory, urlSearch]);
+
+  function setCategory(value: string) {
+    setCategoryState(value);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set("categoria", value);
+      else next.delete("categoria");
+      return next;
+    }, { replace: true });
+  }
 
   const filters = useMemo<CatalogFilters>(
-    () => ({ search, category, order, page, inStock, priceRange }),
-    [category, inStock, order, page, priceRange, search],
+    () => ({ search, category: categoryState, order, page, inStock, priceRange }),
+    [categoryState, inStock, order, page, priceRange, search],
   );
 
   function clearFilters() {
     setSearchInput("");
     setSearch("");
-    setCategory("");
+    setCategoryState("");
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("busqueda");
+      next.delete("categoria");
+      return next;
+    }, { replace: true });
     setInStock(false);
     setPriceRange("all");
     setOrder("RECIENTE");
@@ -46,7 +71,7 @@ export function useCatalogFilters() {
     filters,
     searchInput,
     setSearchInput,
-    category,
+    category: categoryState,
     setCategory,
     order,
     setOrder,

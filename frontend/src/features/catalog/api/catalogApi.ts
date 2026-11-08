@@ -14,14 +14,19 @@ const priceRangeBounds = {
 export const catalogQueryKeys = {
   all: ["catalog"] as const,
   categories: ["catalog", "categories"] as const,
-  products: (filters: CatalogFilters) => ["catalog", "products", filters] as const,
+  products: (filters: CatalogFilters, limit = PAGE_SIZE) =>
+    ["catalog", "products", filters, limit] as const,
+  suggestions: (search: string) => ["catalog", "suggestions", search] as const,
   product: (publicCode: string) => ["catalog", "product", publicCode] as const,
 };
 
-export function buildCatalogSearchParams(filters: CatalogFilters): URLSearchParams {
+export function buildCatalogSearchParams(
+  filters: CatalogFilters,
+  limit = PAGE_SIZE,
+): URLSearchParams {
   const params = new URLSearchParams({
     pagina: String(filters.page),
-    limite: String(PAGE_SIZE),
+    limite: String(limit),
     orden: filters.order,
   });
   if (filters.search) params.set("busqueda", filters.search);
@@ -37,8 +42,11 @@ export function fetchCategories(): Promise<Category[]> {
   return apiRequest<Category[]>("/catalogo/categorias").then(({ datos }) => datos);
 }
 
-export function fetchProducts(filters: CatalogFilters): Promise<ApiEnvelope<Product[]>> {
-  const params = buildCatalogSearchParams(filters);
+export function fetchProducts(
+  filters: CatalogFilters,
+  limit = PAGE_SIZE,
+): Promise<ApiEnvelope<Product[]>> {
+  const params = buildCatalogSearchParams(filters, limit);
   return apiRequest<Product[]>(`/catalogo/productos?${params}`);
 }
 
