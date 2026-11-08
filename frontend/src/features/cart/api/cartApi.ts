@@ -23,3 +23,7 @@ export function removeCartItem(idVariante: number): Promise<Cart> {
     guestToken: getGuestToken(),
   }).then(({ datos }) => datos);
 }
+
+export function clearCart(): Promise<Cart> {
+  return apiRequest<Cart>("/carrito", { method: "DELETE", guestToken: getGuestToken() }).then(({ datos }) => datos);
+}

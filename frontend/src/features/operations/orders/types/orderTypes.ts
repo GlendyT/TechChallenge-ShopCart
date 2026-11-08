@@ -49,3 +49,29 @@ export interface CancelOrderInput {
   idPedido: number;
   motivo: string;
 }
+
+export interface OrderDetailLine {
+  IDPedidoDetalle: number;
+  IDVariante: number;
+  SKUSnapshot: string;
+  NombreProductoSnapshot: string;
+  NombreVarianteSnapshot: string;
+  Cantidad: number;
+  PrecioUnitario: number;
+  DescuentoUnitario: number;
+  Subtotal: number;
+  CantidadDevuelta: number;
+  CantidadEfectiva: number;
+}
+
+export interface OperationsOrderDetail extends Pick<OperationsOrder, "IDPedido" | "CodigoPublico" | "NumeroPedido" | "Estado" | "Total"> {
+  detalles: OrderDetailLine[];
+}
+
+export interface ReturnOrderInput {
+  idPedido: number;
+  codigoPublico: string;
+  idPedidoDetalle: number;
+  cantidadADevolver: number;
+  motivo: string;
+}

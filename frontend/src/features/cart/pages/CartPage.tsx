@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { ArrowLeft, LoaderCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../shared/auth/useAuth";
 import { formatPrice } from "../../../lib/format";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -13,14 +15,17 @@ import {
 import { useCart } from "../hooks/useCart";
 import { useRemoveCartItem } from "../hooks/useRemoveCartItem";
 import { useUpdateCartItem } from "../hooks/useUpdateCartItem";
+import { useClearCart } from "../hooks/useClearCart";
 
 export function CartPage() {
   const { isAuthenticated } = useAuth();
   const cart = useCart();
   const changeQuantity = useUpdateCartItem();
   const removeItem = useRemoveCartItem();
+  const clear = useClearCart();
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const errorMessage =
-    changeQuantity.error?.message ?? removeItem.error?.message;
+    changeQuantity.error?.message ?? removeItem.error?.message ?? clear.error?.message;
 
   return (
     <section className="mx-auto min-h-[60vh] max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
@@ -43,9 +48,12 @@ export function CartPage() {
             Tu bolsa.
           </h1>
         </div>
+        <div className="flex items-center gap-3">
+        {Boolean(cart.data?.items.length) && <Button variant="outline" size="sm" type="button" onClick={() => setClearDialogOpen(true)}>Vaciar carrito</Button>}
         <span className="text-sm text-dn-gris/80">
           {cart.data?.TotalArticulos ?? 0} artículos
         </span>
+        </div>
       </div>
 
       {cart.isPending ? (
@@ -237,6 +245,9 @@ export function CartPage() {
           </Card>
         </div>
       )}
+      <Dialog open={clearDialogOpen} onOpenChange={(open) => { if (!open && !clear.isPending) setClearDialogOpen(false); }}>
+        <DialogContent><DialogHeader><DialogTitle>Vaciar carrito</DialogTitle><DialogDescription>Se quitarán todos los productos de tu carrito. ¿Quieres continuar?</DialogDescription></DialogHeader>{clear.error && <p className="text-sm text-dn-rojo" role="alert">{clear.error.message}</p>}<DialogFooter><Button variant="outline" type="button" disabled={clear.isPending} onClick={() => setClearDialogOpen(false)}>Conservar productos</Button><Button variant="destructive" type="button" disabled={clear.isPending} onClick={() => { void clear.mutateAsync().then(() => setClearDialogOpen(false)).catch(() => undefined); }}>{clear.isPending ? <LoaderCircle aria-hidden="true" className="animate-spin" size={15} /> : <Trash2 aria-hidden="true" size={15} />}Vaciar carrito</Button></DialogFooter></DialogContent>
+      </Dialog>
     </section>
   );
 }

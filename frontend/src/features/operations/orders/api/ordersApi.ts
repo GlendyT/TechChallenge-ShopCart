@@ -4,6 +4,8 @@ import type {
   OrderFilters,
   OrdersPageResult,
   UpdateOrderStatusInput,
+  OperationsOrderDetail,
+  ReturnOrderInput,
 } from "../types/orderTypes";
 
 export const ordersQueryKey = ["operations", "orders"] as const;
@@ -42,4 +44,17 @@ export async function cancelOrder(input: CancelOrderInput) {
     body: JSON.stringify({ motivo: input.motivo }),
   });
 }
+
+export async function fetchOrderDetail(publicCode: string) {
+  return apiRequest<OperationsOrderDetail>(`/pedidos/${encodeURIComponent(publicCode)}`).then(({ datos }) => datos);
+}
+
+export async function returnOrderItem(input: ReturnOrderInput) {
+  return apiRequest(`/pedidos/${input.idPedido}/devoluciones`, {
+    method: "POST",
+    body: JSON.stringify({ idPedidoDetalle: input.idPedidoDetalle, cantidadADevolver: input.cantidadADevolver, motivo: input.motivo }),
+  });
+}
+
+export const orderDetailQueryKey = (code: string) => [...ordersQueryKey, "detail", code] as const;
 

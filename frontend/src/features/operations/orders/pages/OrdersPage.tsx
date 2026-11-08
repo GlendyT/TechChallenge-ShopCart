@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, ArrowRight, LoaderCircle, PackageSearch, RefreshCw, Search, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle, PackageSearch, RefreshCw, RotateCcw, Search, X } from "lucide-react";
 import { Badge } from "../../../../components/ui/badge";
 import { Button } from "../../../../components/ui/button";
 import {
@@ -25,7 +25,8 @@ import { PageState } from "../../../../components/feedback/PageState";
 import { formatPrice } from "../../../../lib/format";
 import { useOrderActions } from "../hooks/useOrderActions";
 import { useOrders } from "../hooks/useOrders";
-import type { OrderFilters, OrderStatus, OperationsOrder, UpdateOrderStatusInput } from "../types/orderTypes";
+import { useOrderDetail } from "../hooks/useOrderDetail";
+import type { OrderFilters, OrderStatus, OperationsOrder, OrderDetailLine, UpdateOrderStatusInput } from "../types/orderTypes";
 
 const initialFilters: OrderFilters = {
   estado: "",
@@ -90,9 +91,15 @@ export function OrdersPage() {
   const [dateError, setDateError] = useState("");
   const [cancelTarget, setCancelTarget] = useState<OperationsOrder | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [returnTarget, setReturnTarget] = useState<OperationsOrder | null>(null);
+  const [returnLineId, setReturnLineId] = useState("");
+  const [returnQuantity, setReturnQuantity] = useState("1");
+  const [returnReason, setReturnReason] = useState("");
+  const [returnFormError, setReturnFormError] = useState("");
   const orders = useOrders(filters, page);
+  const orderDetail = useOrderDetail(returnTarget?.CodigoPublico ?? null);
   const actions = useOrderActions();
-  const isMutating = actions.updateStatus.isPending || actions.cancel.isPending;
+  const isMutating = actions.updateStatus.isPending || actions.cancel.isPending || actions.returnItem.isPending;
 
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,6 +137,23 @@ export function OrdersPage() {
       setPage(1);
     } catch {
       // Keep the dialog open so the operator can read the API error.
+    }
+  }
+
+  async function confirmReturn() {
+    const detail = orderDetail.data;
+    const line = detail?.detalles.find((item) => item.IDPedidoDetalle === Number(returnLineId));
+    const amount = Number(returnQuantity);
+    if (!returnTarget || !line || !Number.isInteger(amount) || amount < 1 || amount > line.CantidadEfectiva || returnReason.trim().length < 5 || returnReason.trim().length > 255) {
+      setReturnFormError("Selecciona una línea disponible, indica una cantidad válida y escribe un motivo de 5 a 255 caracteres.");
+      return;
+    }
+    setReturnFormError("");
+    try {
+      await actions.returnItem.mutateAsync({ idPedido: returnTarget.IDPedido, codigoPublico: returnTarget.CodigoPublico, idPedidoDetalle: line.IDPedidoDetalle, cantidadADevolver: amount, motivo: returnReason.trim() });
+      setReturnTarget(null); setReturnLineId(""); setReturnQuantity("1"); setReturnReason(""); setPage(1);
+    } catch {
+      // Conserva el diálogo y muestra el error de la API.
     }
   }
 
@@ -228,6 +252,7 @@ export function OrdersPage() {
                           <div className="flex min-w-44 justify-end gap-2">
                             {next && <Button size="sm" type="button" disabled={isMutating} onClick={() => void advanceOrder(order, next)}>{isMutating && <LoaderCircle aria-hidden="true" className="animate-spin" size={14} />}{nextStatusLabels[next]}</Button>}
                             {canCancel && <Button size="sm" type="button" variant="outline" disabled={isMutating} onClick={() => { setCancelTarget(order); setCancelReason(""); }}>Cancelar</Button>}
+                            {(order.Estado === "ENTREGADO" || order.Estado === "DEVUELTO_PARCIAL") && <Button size="sm" type="button" variant="outline" disabled={isMutating} onClick={() => { setReturnTarget(order); setReturnLineId(""); setReturnQuantity("1"); setReturnReason(""); setReturnFormError(""); actions.returnItem.reset(); }}>Devolución</Button>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -267,6 +292,18 @@ export function OrdersPage() {
               Cancelar pedido
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(returnTarget)} onOpenChange={(open) => { if (!open && !actions.returnItem.isPending) setReturnTarget(null); }}>
+        <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Registrar devolución</DialogTitle><DialogDescription>Pedido {returnTarget?.NumeroPedido}. Solo se aceptan devoluciones de pedidos entregados o con devolución parcial; la cantidad debe estar dentro del saldo aún no devuelto.</DialogDescription></DialogHeader>
+          {orderDetail.isPending ? <div className="space-y-3" role="status" aria-label="Cargando líneas del pedido"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : orderDetail.isError ? <div role="alert" className="text-sm text-dn-rojo">{orderDetail.error.message}<Button className="ml-2" size="sm" variant="outline" onClick={() => void orderDetail.refetch()}>Reintentar</Button></div> : <div className="space-y-4">
+            <label className="block space-y-1.5 text-sm font-medium text-dn-gris-oscuro"><span>Producto del pedido</span><Select value={returnLineId} onValueChange={(value) => { setReturnLineId(value); setReturnQuantity("1"); setReturnFormError(""); }}><SelectTrigger className="w-full"><SelectValue placeholder="Selecciona la línea que se devolverá" /></SelectTrigger><SelectContent>{(orderDetail.data?.detalles ?? []).filter((line: OrderDetailLine) => line.CantidadEfectiva > 0).map((line) => <SelectItem key={line.IDPedidoDetalle} value={String(line.IDPedidoDetalle)}>{line.NombreProductoSnapshot} · {line.NombreVarianteSnapshot} · disponibles para devolución: {line.CantidadEfectiva}</SelectItem>)}</SelectContent></Select></label>
+            {returnLineId && (() => { const line = orderDetail.data?.detalles.find((item) => item.IDPedidoDetalle === Number(returnLineId)); return line ? <div className="space-y-1.5"><Label htmlFor="return-quantity">Cantidad a devolver (máximo {line.CantidadEfectiva})</Label><Input id="return-quantity" type="number" min="1" max={line.CantidadEfectiva} step="1" value={returnQuantity} onChange={(event) => setReturnQuantity(event.target.value)} /></div> : null; })()}
+            <label className="block space-y-1.5 text-sm font-medium text-dn-gris-oscuro" htmlFor="return-reason">Motivo<Textarea id="return-reason" minLength={5} maxLength={255} value={returnReason} aria-describedby="return-reason-help" onChange={(event) => setReturnReason(event.target.value)} /></label><p id="return-reason-help" className="text-xs text-dn-gris/80">Entre 5 y 255 caracteres ({returnReason.trim().length}/255).</p>
+            {(returnFormError || actions.returnItem.error) && <p role="alert" className="text-sm text-dn-rojo">{returnFormError || actions.returnItem.error?.message}</p>}
+          </div>}
+          <DialogFooter><Button variant="outline" type="button" disabled={actions.returnItem.isPending} onClick={() => setReturnTarget(null)}>Cerrar</Button><Button variant="destructive" type="button" disabled={orderDetail.isPending || orderDetail.isError || !returnLineId || Number(returnQuantity) < 1 || returnReason.trim().length < 5 || actions.returnItem.isPending} onClick={() => void confirmReturn()}>{actions.returnItem.isPending ? <LoaderCircle aria-hidden="true" className="animate-spin" size={15} /> : <RotateCcw aria-hidden="true" size={15} />}Confirmar devolución</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </section>

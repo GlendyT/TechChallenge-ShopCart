@@ -2,6 +2,7 @@ import { Check, CreditCard, LoaderCircle, MapPin } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { formatPrice } from "../../../lib/format";
+import { useAuth } from "../../../shared/auth/useAuth";
 import { Button } from "../../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Input } from "../../../components/ui/input";
@@ -13,12 +14,13 @@ import { useValidateCoupon } from "../hooks/useValidateCoupon";
 import type { ConfirmCheckoutInput } from "../types/checkoutTypes";
 
 export function CheckoutPage() {
+  const { user } = useAuth();
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
   const [coupon, setCoupon] = useState("");
   const [couponMessage, setCouponMessage] = useState("");
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const cart = useCart();
-  const addresses = useAddresses();
+  const addresses = useAddresses(user?.idUsuario ?? null);
   const applyCoupon = useValidateCoupon();
   const placeOrder = useCheckout();
 

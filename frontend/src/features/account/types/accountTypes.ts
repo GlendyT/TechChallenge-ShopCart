@@ -15,4 +15,28 @@ export interface Address {
   Ciudad: string;
   Departamento: string;
   EsPrincipal: boolean;
+  CodigoPostal?: string | null;
+}
+
+export interface AddressInput {
+  nombreDestinatario: string;
+  telefonoContacto: string;
+  direccionLinea1: string;
+  direccionLinea2: string | null;
+  ciudad: string;
+  departamento: string;
+  codigoPostal: string | null;
+  esPrincipal: boolean;
+}
+
+export interface AccountProfile {
+  idUsuario: number;
+  codigoPublico: string;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  telefono: string | null;
+  rol: string;
+  activo: boolean;
+  fechaCreacion: string;
 }
