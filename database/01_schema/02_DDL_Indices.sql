@@ -4,6 +4,14 @@
     -- DESCRIPCIÓN: Índices no agrupados para Foreign Keys y optimización de consultas.                                
     -- OBJETIVO: Cumplir con el RNF de respuesta en menos de 1 segundo.                                                
     -- ============================================================================                                    
+
+    SET ANSI_NULLS ON;
+    SET QUOTED_IDENTIFIER ON;
+    SET ANSI_PADDING ON;
+    SET ANSI_WARNINGS ON;
+    SET ARITHABORT ON;
+    SET CONCAT_NULL_YIELDS_NULL ON;
+    SET NUMERIC_ROUNDABORT OFF;
                                                                                                                        
     -- ----------------------------------------------------------------------------                                    
     -- 1. ÍNDICES SOBRE LLAVES FORÁNEAS (Evitan Table Scans en JOINs)                                                  
@@ -106,6 +114,9 @@
     INCLUDE (IDProducto, SKU, ExistenciaFisica, Talla, Color);                                                         
                                                                                                                        
     -- Carrito: Detección rápida de carritos activos y abandonados por inactividad                                     
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_Carritos_TokenInvitado
+    ON Carritos(TokenInvitado) WHERE TokenInvitado IS NOT NULL;
+
     CREATE NONCLUSTERED INDEX IX_Carritos_Actividad                                                                    
     ON Carritos(Activo, FechaUltimaActividad)                                                                          
     INCLUDE (CodigoPublico, IDUsuario, TokenInvitado);                                                                 
@@ -130,4 +141,4 @@
     -- Bitácora: Filtro por entidad (módulo) y orden cronológico descendente                                           
     CREATE NONCLUSTERED INDEX IX_Bitacora_Entidad_Fecha                                                                
     ON Bitacora(Entidad, Fecha DESC)                                                                                   
-    INCLUDE (Accion, IDRegistro, IDUsuario, DireccionIP);  
+    INCLUDE (Accion, IDRegistro, IDUsuario, DireccionIP);

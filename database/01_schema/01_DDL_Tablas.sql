@@ -173,7 +173,6 @@ CREATE TABLE Carritos (
     Activo BIT NOT NULL CONSTRAINT DF_Carritos_Activo DEFAULT (1),
     CONSTRAINT PK_Carritos PRIMARY KEY CLUSTERED (IDCarrito),
     CONSTRAINT UQ_Carritos_CodigoPublico UNIQUE (CodigoPublico),
-    CONSTRAINT UQ_Carritos_TokenInvitado UNIQUE (TokenInvitado),
     CONSTRAINT FK_Carritos_Usuarios FOREIGN KEY (IDUsuario) REFERENCES Usuarios(IDUsuario)
 );
 
