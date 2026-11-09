@@ -112,7 +112,7 @@
         INSERT INTO Categorias (Nombre, Descripcion, IDCategoriaPadre, Activo) VALUES ('Accesorios', 'Cinturones,   
         billeteras, relojes y gorras', NULL, 1);                                                                    
                                                                                                                     
-    DECLARE @IDCategoriaCaballeros INT = (SELECT IDCategoria FROM Categorias WHERE Nombre = 'Caballeros');          
+    DECLARE @IDCategoriaCaballeros INT = (SELECT IDCategoria FROM Categorias WHERE Nombre = 'Caballeros');
     DECLARE @IDCategoriaDamas INT = (SELECT IDCategoria FROM Categorias WHERE Nombre = 'Damas');                    
     DECLARE @IDCategoriaCalzado INT = (SELECT IDCategoria FROM Categorias WHERE Nombre = 'Calzado');                
                                                                                                                     
@@ -155,10 +155,10 @@
                                                                                                                     
     -- Producto 2: Pantalón Chino Casual                                                                            
     DECLARE @IDProd2 INT;                                                                                           
-    IF NOT EXISTS (SELECT 1 FROM Productos WHERE Nombre = 'Pantalón Chino Casual')                                  
+    IF NOT EXISTS (SELECT 1 FROM Productos WHERE Nombre = N'Pantalón Chino Casual')
     BEGIN                                                                                                           
         INSERT INTO Productos (IDCategoria, Nombre, Descripcion, Activo)                                            
-        VALUES (@IDCategoriaCaballeros, 'Pantalón Chino Casual', 'Pantalón estilo chino confeccionado con tela      
+        VALUES (@IDCategoriaCaballeros, N'Pantalón Chino Casual', N'Pantalón estilo chino confeccionado con tela
         stretch para máxima comodidad.', 1);                                                                        
         SET @IDProd2 = SCOPE_IDENTITY();                                                                            
                                                                                                                     
@@ -248,5 +248,4 @@
     END                                                                                                             
                                                                                                                     
     COMMIT TRANSACTION;                                                                                             
-    GO                                                                                                              
-           
+    GO

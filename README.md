@@ -115,6 +115,7 @@ Los scripts SQL se ejecutan en orden. Los nombres de tablas y objetos se corresp
 | `database/04_stored_procedures/07_SP_Reportes_Dashboard.sql` | Consultas para dashboard e informes. |
 | `database/04_stored_procedures/08_SP_Bitacora.sql` | Escritura/consulta de eventos de auditoría. |
 | `database/05_seed/01_Seed_DatosIniciales.sql` | Datos de referencia, roles, catálogo y cuentas de demostración. |
+| `database/05_seed/02_Seed_CatalogoGeneral.sql` | Productos de demostración para electrodomésticos, tecnología, mascotas y deportes. Ejecutar después del seed inicial. |
 
 ### Entidades principales
 
@@ -184,7 +185,7 @@ docker compose ps
 
 La API queda en `http://localhost:3000`; Swagger en `/api/docs`. El backend espera a que el contenedor SQL Server responda al healthcheck. El volumen `mssql_data` conserva los datos entre reinicios. El contenedor `backend` requiere `backend/.env` para los secretos JWT; no publiques ese archivo. El `.env` raíz proporciona `DB_PASSWORD` y `DB_NAME` a Compose.
 
-**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08 y `05_seed/01_Seed_DatosIniciales.sql`. Los scripts pueden enviarse mediante `sqlcmd` ejecutando cada archivo SQL en orden contra el contenedor `shopcart-sqlserver`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
+**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08, `05_seed/01_Seed_DatosIniciales.sql` y `05_seed/02_Seed_CatalogoGeneral.sql`. Los scripts pueden enviarse mediante `sqlcmd` ejecutando cada archivo SQL en orden contra el contenedor `shopcart-sqlserver`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
 
 Para detener los servicios conserva los datos con `docker compose down`; para borrar también el volumen y la base local usa `docker compose down -v` (esto elimina los datos persistidos).
 
@@ -222,6 +223,30 @@ pnpm start      # Ejecuta dist/server.js
 ```
 
 La API ofrece `GET /api/health` y Swagger UI en `http://localhost:3000/api/docs` (ajusta el puerto si cambias `PORT`). El servidor solo comienza a aceptar solicitudes cuando la conexión inicial con SQL Server tiene éxito.
+
+### Configurar y ejecutar frontend
+
+El cliente web usa React, TypeScript, Vite y pnpm. Primero inicia SQL Server, aplica los scripts de `database/` y ejecuta la API siguiendo la sección anterior. Después, desde `frontend/`:
+
+```powershell
+pnpm install
+Copy-Item .env.example .env.local
+pnpm dev
+```
+
+`VITE_API_BASE_URL` apunta por defecto a `http://localhost:3000/api`. Ajusta el valor en `.env.local` si la API usa otro host o puerto. Las variables con prefijo `VITE_` son públicas y no deben contener secretos.
+
+Comprobaciones disponibles desde `frontend/`:
+
+```powershell
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run test:e2e
+pnpm run build
+```
+
+Vitest/Testing Library y Playwright simulan las respuestas de API para que sus pruebas no dependan de SQL Server. Para usar la tienda manualmente, el backend y la base de datos deben estar encendidos.
 
 ## API HTTP
 
