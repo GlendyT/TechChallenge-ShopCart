@@ -5,6 +5,7 @@ import { FormSheet } from "../../../components/forms/FormSheet";
 import { DataTable } from "../../../components/tables/DataTable";
 import type { DataTableColumn } from "../../../components/tables/DataTable";
 import { TablePagination } from "../../../components/tables/TablePagination";
+import { ProductEditSheet } from "../components/ProductEditSheet";
 
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
@@ -46,6 +47,7 @@ function ProductsSection({
   onSearch: (value: string) => void;
 }) {
   const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
   const [productId, setProductId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -154,6 +156,13 @@ function ProductsSection({
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setEditingProduct(item)}
+          >
+            Editar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => openVariantForm(item.IDProducto)}
           >
             Añadir variante
@@ -217,6 +226,15 @@ function ProductsSection({
         onPageSizeChange={onPageSizeChange}
       />
       <ErrorText>{toggle.error?.message}</ErrorText>
+
+      <ProductEditSheet
+        key={editingProduct?.IDProducto ?? "closed"}
+        product={editingProduct}
+        categories={categories}
+        onOpenChange={(open) => {
+          if (!open) setEditingProduct(null);
+        }}
+      />
 
       <FormSheet
         open={showProductForm}
