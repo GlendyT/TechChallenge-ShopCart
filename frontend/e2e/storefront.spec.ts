@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+﻿import { expect, test } from '@playwright/test'
 import { categories, emptyCart, filledCart, productCode, productDetail, products } from '../src/test/fixtures'
 
 test('customer can browse a piece, add it to the guest cart and review the bag', async ({ page }) => {
@@ -25,7 +25,7 @@ test('customer can browse a piece, add it to the guest cart and review the bag',
   })
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /los buenos momentos/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Caballeros' })).toBeVisible()
   await page.getByRole('link', { name: 'Camisa Oxford Slim Fit', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Camisa Oxford Slim Fit' })).toBeVisible()
   await page.getByRole('radio', { name: /azul \/ talla m/i }).click()

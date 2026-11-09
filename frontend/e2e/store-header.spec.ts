@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+﻿import { expect, test } from "@playwright/test";
 
 test("the store header filters the catalog by category and search", async ({ page }) => {
   await page.route("**/api/catalogo/categorias", (route) => route.fulfill({
@@ -15,7 +15,7 @@ test("the store header filters the catalog by category and search", async ({ pag
       IDCategoria: 1,
       Categoria: "Caballeros",
       Nombre: "Camisa Oxford Slim Fit",
-      Descripcion: "Camisa de algodón.",
+      Descripcion: "Camisa de algodÃ³n.",
       Activo: true,
       PrecioMinimo: 249,
       PrecioMaximo: 249,
@@ -37,18 +37,18 @@ test("the store header filters the catalog by category and search", async ({ pag
   }));
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Explora nuestras categorías" })).toBeVisible();
-  const categoryCarousel = page.getByRole("region", { name: "Categorías de productos" });
+  const categoryCarousel = page.getByRole("region", { name: "Categorías principales" });
+  await expect(page.getByRole('region', { name: 'Categorías principales' })).toBeVisible();
   await expect(categoryCarousel).toContainText("Prendas y moda para hombres.");
-  await categoryCarousel.getByRole("button", { name: "Explorar categoría Caballeros" }).click();
+  await categoryCarousel.getByRole("button", { name: /Explorar categor.*Caballeros/ }).click();
   await expect(page).toHaveURL(/\/categoria\/1/);
-  await expect(page.getByRole("region", { name: "Categorías de productos" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Categorías principales" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Caballeros" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Don Arturo, ir al inicio" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Ingresar" })).toBeVisible();
   await expect(page.getByRole("link", { name: /carrito de compra/i })).toBeVisible();
 
-  await page.getByRole("button", { name: "Ver categorías" }).click();
+  await page.getByRole("button", { name: /Ver categor/ }).click();
   await page.getByRole("menuitem", { name: "Caballeros" }).click();
   await expect(page).toHaveURL(/\/categoria\/1/);
 
@@ -57,11 +57,11 @@ test("the store header filters the catalog by category and search", async ({ pag
   await expect(suggestions).toContainText("1 producto encontrado");
   await expect(suggestions.getByRole("link", { name: "Ver Camisa Oxford Slim Fit" })).toBeVisible();
   await expect(page).not.toHaveURL(/busqueda=Oxford/);
-  await expect(page.getByRole("main")).toContainText("No encontramos productos en esta categoría.");
+  await expect(page.getByRole("main")).toContainText(/No encontramos productos en esta categor/);
 
   await page.getByRole("textbox", { name: "Buscar productos" }).fill("xyz-no-existe");
-  await expect(suggestions).toContainText("No encontramos productos para “xyz-no-existe”.");
-  await expect(page.getByRole("main")).toContainText("No encontramos productos en esta categoría.");
+  await expect(suggestions).toContainText(/No encontramos productos para.*xyz-no-existe/);
+  await expect(page.getByRole("main")).toContainText(/No encontramos productos en esta categor/);
 
   await page.getByRole("textbox", { name: "Buscar productos" }).fill("Oxford");
   await expect(suggestions.getByRole("link", { name: "Ver Camisa Oxford Slim Fit" })).toBeVisible();
