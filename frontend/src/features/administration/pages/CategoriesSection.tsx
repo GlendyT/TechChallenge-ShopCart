@@ -36,11 +36,14 @@ function CategoriesSection({ rows }: { rows: AdminCategory[] }) {
       activo?: boolean;
     }) => adminMutations.saveCategory(data.id, data),
     "categories",
+    (_result, input) =>
+      input.id ? "Categoría actualizada correctamente." : "Categoría creada correctamente.",
   );
   const toggle = useAdminMutation(
     (input: { id: number; activo: boolean }) =>
       adminMutations.setCategoryActive(input.id, input.activo),
     "categories",
+    "Estado de la categoría actualizado.",
   );
   function open(category?: AdminCategory) {
     setEditing(category ?? null);

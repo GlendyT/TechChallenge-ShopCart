@@ -27,6 +27,10 @@ export function AdminUsersPage() {
     (input: { id: number; activo: boolean }) =>
       adminMutations.setUserActive(input.id, input.activo),
     "users",
+    (_result, input) =>
+      input.activo
+        ? "Usuario activado correctamente."
+        : "Usuario desactivado correctamente.",
   );
   const rows = users.data ?? [];
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));

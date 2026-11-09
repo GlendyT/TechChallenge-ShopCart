@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ImagePlus, LoaderCircle, Save, Trash2 } from "lucide-react";
+import { DataTable } from "../../../components/tables/DataTable";
+import type { DataTableColumn } from "../../../components/tables/DataTable";
 import { FormSheet } from "../../../components/forms/FormSheet";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -12,9 +14,34 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { Textarea } from "../../../components/ui/textarea";
+import { formatPrice } from "../../../lib/format";
 import { adminMutations, useAdminMutation, useAdminProductDetail } from "../hooks/useAdminData";
 import type { AdminCategory, AdminProduct } from "../types/adminTypes";
-import { ErrorText } from "../pages/componentutils";
+import type { ProductVariant } from "../../catalog/types/catalogTypes";
+import { AdminStatus, ErrorText } from "../pages/componentutils";
+
+const variantColumns: DataTableColumn<ProductVariant>[] = [
+  {
+    id: "sku",
+    header: "SKU",
+    cell: (variant) => (
+      <span className="font-mono text-xs">{variant.SKU}</span>
+    ),
+  },
+  { id: "name", header: "Variante", cell: (variant) => variant.Nombre },
+  { id: "size", header: "Talla", cell: (variant) => variant.Talla || "—" },
+  { id: "color", header: "Color", cell: (variant) => variant.Color || "—" },
+  {
+    id: "price",
+    header: "Precio",
+    cell: (variant) => formatPrice(variant.Precio),
+  },
+  {
+    id: "status",
+    header: "Estado",
+    cell: (variant) => <AdminStatus active={variant.Activo} />,
+  },
+];
 
 interface ProductEditSheetProps {
   product: AdminProduct | null;
@@ -39,13 +66,14 @@ export function ProductEditSheet({
     (data: { idCategoria: number; nombre: string; descripcion: string }) =>
       adminMutations.updateProduct(product?.IDProducto ?? 0, data),
     "products",
+    "Producto actualizado correctamente.",
   );
   const addImage = useAdminMutation(
     (data: { imagenUrl: string; esPrincipal?: boolean }) =>
       adminMutations.createProductImage(product?.IDProducto ?? 0, data),
     "products",
+    "Imagen agregada correctamente.",
   );
-
   async function submitProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!product) return;
@@ -57,6 +85,7 @@ export function ProductEditSheet({
         nombre: name.trim(),
         descripcion: desc.trim(),
       });
+      onOpenChange(false);
     } catch {
       // El error se muestra en el formulario.
     }
@@ -72,6 +101,7 @@ export function ProductEditSheet({
       });
       setNewImageUrl("");
       setNewImageIsPrimary(false);
+      onOpenChange(false);
     } catch {
       // El error se muestra junto al campo de URL.
     }
@@ -176,6 +206,25 @@ export function ProductEditSheet({
             <ProductError>{update.error?.message}</ProductError>
           </form>
 
+          <section aria-labelledby="product-variants-heading" className="space-y-3 border-t pt-5">
+            <div>
+              <h3 id="product-variants-heading" className="font-semibold">Variantes y SKU</h3>
+              <p className="mt-1 text-sm text-dn-gris">Cada variante tiene su propio SKU.</p>
+            </div>
+            {detail.data.variantes.length ? (
+              <DataTable
+                ariaLabel={`Variantes de ${product.Nombre}`}
+                columns={variantColumns}
+                data={detail.data.variantes}
+                getRowId={(variant) => variant.IDVariante}
+              />
+            ) : (
+              <p className="rounded-md border border-dn-gris/20 bg-dn-gris/5 p-3 text-sm text-dn-gris">
+                Este producto todavía no tiene variantes.
+              </p>
+            )}
+          </section>
+
           <section aria-labelledby="product-images-heading" className="space-y-4 border-t pt-5">
             <div>
               <h3 id="product-images-heading" className="font-semibold">
@@ -193,6 +242,7 @@ export function ProductEditSheet({
                     key={image.IDProductoImagen}
                     productId={product.IDProducto}
                     image={image}
+                    onSuccess={() => onOpenChange(false)}
                   />
                 ))}
               </div>
@@ -245,9 +295,11 @@ export function ProductEditSheet({
 function ProductImageRow({
   productId,
   image,
+  onSuccess,
 }: {
   productId: number;
   image: { IDProductoImagen: number; ImagenURL: string; EsPrincipal: boolean; Orden: number };
+  onSuccess: () => void;
 }) {
   const [imageUrl, setImageUrl] = useState(image.ImagenURL);
   const [order, setOrder] = useState(String(image.Orden));
@@ -256,10 +308,12 @@ function ProductImageRow({
     (data: { imagenUrl: string; esPrincipal: boolean; orden: number }) =>
       adminMutations.updateProductImage(productId, image.IDProductoImagen, data),
     "products",
+    "Imagen actualizada correctamente.",
   );
   const remove = useAdminMutation(
     () => adminMutations.deleteProductImage(productId, image.IDProductoImagen),
     "products",
+    "Imagen eliminada correctamente.",
   );
 
   async function saveImage() {
@@ -269,6 +323,7 @@ function ProductImageRow({
         esPrincipal: isPrimary,
         orden: Number(order),
       });
+      onSuccess();
     } catch {
       // El error se muestra en la fila de la imagen.
     }
@@ -277,6 +332,7 @@ function ProductImageRow({
   async function deleteImage() {
     try {
       await remove.mutateAsync();
+      onSuccess();
     } catch {
       // El error se muestra en la fila de la imagen.
     }

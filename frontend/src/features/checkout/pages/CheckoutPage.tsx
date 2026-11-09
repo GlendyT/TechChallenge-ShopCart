@@ -1,6 +1,7 @@
 import { Check, CreditCard, LoaderCircle, MapPin } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { formatPrice } from "../../../lib/format";
 import { useAuth } from "../../../shared/auth/useAuth";
 import { Button } from "../../../components/ui/button";
@@ -27,7 +28,8 @@ export function CheckoutPage() {
   async function handleApplyCoupon() {
     try {
       const response = await applyCoupon.mutateAsync(coupon.trim());
-      setCouponMessage(response.mensaje ?? "Cupón válido.");
+      setCouponMessage("");
+      toast.success(response.mensaje ?? "Cupón válido.");
     } catch (error) {
       setCouponMessage(error instanceof Error ? error.message : "No pudimos validar el cupón.");
     }

@@ -41,11 +41,16 @@ function CouponsSection({
   const [category, setCategory] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
-  const create = useAdminMutation(adminMutations.createCoupon, "coupons");
+  const create = useAdminMutation(
+    adminMutations.createCoupon,
+    "coupons",
+    "Cupón creado correctamente.",
+  );
   const toggle = useAdminMutation(
     (input: { id: number; activo: boolean }) =>
       adminMutations.setCouponActive(input.id, input.activo),
     "coupons",
+    "Estado del cupón actualizado.",
   );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

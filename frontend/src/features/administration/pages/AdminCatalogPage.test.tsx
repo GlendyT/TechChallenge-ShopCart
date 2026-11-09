@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
+import { Toaster } from "../../../components/ui/sonner";
 import { server } from "../../../test/server";
 import { AdminCatalogPage } from "./AdminCatalogPage";
 
@@ -12,6 +13,7 @@ describe("AdminCatalogPage reusable components", () => {
   it("uses the shared tables, pagination and form sheets across admin sections", async () => {
     const productLimits: string[] = [];
     const auditLimits: string[] = [];
+    let createdVariant: Record<string, unknown> | undefined;
     server.use(
       http.get(`${api}/catalogo/categorias`, () =>
         HttpResponse.json({
@@ -54,6 +56,13 @@ describe("AdminCatalogPage reusable components", () => {
           totalPaginas: 1,
           paginaActual: 1,
         });
+      }),
+      http.post(`${api}/catalogo/variantes`, async ({ request }) => {
+        createdVariant = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(
+          { ok: true, datos: { IDVariante: 51, SKU: "P4-GRIS-L-01" } },
+          { status: 201 },
+        );
       }),
       http.get(`${api}/cupones`, () =>
         HttpResponse.json({
@@ -109,7 +118,10 @@ describe("AdminCatalogPage reusable components", () => {
     const user = userEvent.setup();
     render(
       <QueryClientProvider client={queryClient}>
-        <AdminCatalogPage />
+        <>
+          <AdminCatalogPage />
+          <Toaster position="top-right" />
+        </>
       </QueryClientProvider>,
     );
 
@@ -134,8 +146,24 @@ describe("AdminCatalogPage reusable components", () => {
     await user.click(within(productSheet).getByRole("button", { name: "Cancelar" }));
     await user.click(screen.getByRole("button", { name: "Añadir variante" }));
     const variantSheet = await screen.findByRole("dialog", { name: "Añadir variante" });
-    expect(within(variantSheet).getByLabelText("SKU")).toBeInTheDocument();
-    await user.click(within(variantSheet).getByRole("button", { name: "Cancelar" }));
+    expect(within(variantSheet).getByLabelText("SKU")).not.toBeRequired();
+    expect(
+      within(variantSheet).getByText(
+        "Opcional. Déjalo vacío para que el sistema genere el SKU.",
+      ),
+    ).toBeInTheDocument();
+    await user.type(
+      within(variantSheet).getByLabelText("Nombre de variante"),
+      "Gris talla L",
+    );
+    await user.type(within(variantSheet).getByLabelText("Precio"), "199.99");
+    await user.click(
+      within(variantSheet).getByRole("button", { name: "Crear variante" }),
+    );
+    expect(
+      await screen.findByText("Variante creada correctamente. SKU: P4-GRIS-L-01"),
+    ).toBeInTheDocument();
+    expect(createdVariant).not.toHaveProperty("sku");
     await user.click(screen.getByRole("combobox", { name: "Filas por página" }));
     await user.click(screen.getByRole("option", { name: "50" }));
     await waitFor(() => expect(productLimits).toContain("50"));

@@ -14,7 +14,8 @@ import {
   signUpRequest,
 } from "../../features/auth/api/authApi";
 import { AuthContext, type AuthContextValue } from "./AuthContext";
-import type { AuthSession, LoginInput, RegisterInput } from "./authTypes";
+import type { AuthSession, LoginInput, RegisterInput, UserRole } from "./authTypes";
+import { AuthPortalMismatchError } from "./authErrors";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentSession, setCurrentSession] = useState<AuthSession | null>(() => getSession());
@@ -38,16 +39,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signIn = useCallback(async (input: LoginInput) => {
+  const signIn = useCallback(async (
+    input: LoginInput,
+    expectedRole?: UserRole,
+  ) => {
     const nextSession = await signInRequest(input);
+    if (expectedRole && nextSession.usuario.rol !== expectedRole) {
+      try {
+        await signOutRequest(nextSession.refreshToken);
+      } catch {
+        // No se conserva la sesión local cuando el portal no coincide.
+      }
+      throw new AuthPortalMismatchError(expectedRole, nextSession.usuario.rol);
+    }
     setSession(nextSession);
     await migrateGuestCart();
+    return nextSession;
   }, [migrateGuestCart]);
 
   const signUp = useCallback(async (input: RegisterInput) => {
     const nextSession = await signUpRequest(input);
     setSession(nextSession);
     await migrateGuestCart();
+    return nextSession;
   }, [migrateGuestCart]);
 
   const signOut = useCallback(async () => {

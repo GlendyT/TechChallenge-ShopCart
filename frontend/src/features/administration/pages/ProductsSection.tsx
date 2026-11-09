@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { LoaderCircle, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../../components/ui/button";
 import { FormSheet } from "../../../components/forms/FormSheet";
 import { DataTable } from "../../../components/tables/DataTable";
@@ -17,6 +18,7 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 import { Textarea } from "../../../components/ui/textarea";
+import { ApiError } from "../../../shared/api/apiError";
 import { adminMutations, useAdminMutation } from "../hooks/useAdminData";
 import type { AdminCategory, AdminProduct } from "../types/adminTypes";
 import { AdminStatus, ErrorText } from "./componentutils";
@@ -59,12 +61,24 @@ function ProductsSection({
   const [color, setColor] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
-  const create = useAdminMutation(adminMutations.createProduct, "products");
-  const variant = useAdminMutation(adminMutations.createVariant, "products");
+  const create = useAdminMutation(
+    adminMutations.createProduct,
+    "products",
+    "Producto creado. Ahora puedes agregar sus variantes.",
+  );
+  const variant = useAdminMutation(
+    adminMutations.createVariant,
+    "products",
+    (result) => `Variante creada correctamente. SKU: ${result.datos.SKU}`,
+  );
   const toggle = useAdminMutation(
     (input: { id: number; activo: boolean }) =>
       adminMutations.setProductActive(input.id, input.activo),
     "products",
+    (_result, input) =>
+      input.activo
+        ? "Producto activado correctamente."
+        : "Producto desactivado correctamente.",
   );
   function openProductForm() {
     create.reset();
@@ -100,16 +114,18 @@ function ProductsSection({
   }
   async function submitVariant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const payload = {
+      idProducto: Number(variantProductId),
+      ...(sku.trim() ? { sku: sku.trim() } : {}),
+      nombre: variantName.trim(),
+      talla: size.trim() || null,
+      color: color.trim() || null,
+      precio: Number(price),
+      existenciaFisicaInicial: Number(stock),
+    };
+
     try {
-      await variant.mutateAsync({
-        idProducto: Number(variantProductId),
-        sku: sku.trim(),
-        nombre: variantName.trim(),
-        talla: size.trim() || null,
-        color: color.trim() || null,
-        precio: Number(price),
-        existenciaFisicaInicial: Number(stock),
-      });
+      await variant.mutateAsync(payload);
       setSku("");
       setVariantName("");
       setSize("");
@@ -117,8 +133,27 @@ function ProductsSection({
       setPrice("");
       setStock("0");
       setProductId("");
-    } catch {
-      /* Error visible junto al formulario. */
+    } catch (error) {
+      console.error("[AdminCatalog] Error al crear variante", {
+        endpoint: "POST /catalogo/variantes",
+        payload,
+        status: error instanceof ApiError ? error.status : undefined,
+        message: error instanceof Error ? error.message : error,
+        validationFields: error instanceof ApiError ? error.fields : undefined,
+      });
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No se pudo crear la variante. Inténtalo de nuevo.",
+        {
+          description:
+            error instanceof ApiError && error.fields?.length
+              ? error.fields
+                  .map(({ campo, mensaje }) => `${campo}: ${mensaje}`)
+                  .join(" · ")
+              : undefined,
+        },
+      );
     }
   }
   const columns: DataTableColumn<AdminProduct>[] = [
@@ -380,8 +415,11 @@ function ProductsSection({
               maxLength={50}
               value={sku}
               onChange={(event) => setSku(event.target.value)}
-              required
+              placeholder="Se genera automáticamente"
             />
+            <p className="text-xs text-dn-gris">
+              Opcional. Déjalo vacío para que el sistema genere el SKU.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="variant-name">Nombre de variante</Label>
@@ -435,9 +473,6 @@ function ProductsSection({
               onChange={(event) => setStock(event.target.value)}
               required
             />
-          </div>
-          <div className="sm:col-span-2">
-            <ErrorText>{variant.error?.message}</ErrorText>
           </div>
         </form>
       </FormSheet>

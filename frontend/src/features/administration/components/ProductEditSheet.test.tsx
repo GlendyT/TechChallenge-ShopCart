@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { server } from "../../../test/server";
 import type { AdminCategory, AdminProduct } from "../types/adminTypes";
 import { ProductEditSheet } from "./ProductEditSheet";
@@ -61,7 +61,18 @@ describe("ProductEditSheet", () => {
           ok: true,
           datos: {
             ...product,
-            variantes: [],
+            variantes: [
+              {
+                IDVariante: 51,
+                SKU: "P4-GRIS-L-01",
+                Nombre: "Gris talla L",
+                Talla: "L",
+                Color: "Gris",
+                Precio: 199,
+                ExistenciaDisponible: 8,
+                Activo: true,
+              },
+            ],
             imagenes: images,
           },
         }),
@@ -117,12 +128,13 @@ describe("ProductEditSheet", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
+    const onOpenChange = vi.fn();
     render(
       <QueryClientProvider client={queryClient}>
         <ProductEditSheet
           product={product}
           categories={categories}
-          onOpenChange={() => undefined}
+          onOpenChange={onOpenChange}
         />
       </QueryClientProvider>,
     );
@@ -131,6 +143,9 @@ describe("ProductEditSheet", () => {
       name: "Editar producto: Audífonos",
     });
     const nameInput = within(dialog).getByLabelText("Nombre");
+    expect(
+      within(dialog).getByRole("table", { name: "Variantes de Audífonos" }),
+    ).toHaveTextContent("P4-GRIS-L-01");
     await user.clear(nameInput);
     await user.type(nameInput, "Audífonos Bluetooth");
     const descriptionInput = within(dialog).getByLabelText("Descripción");
@@ -145,6 +160,7 @@ describe("ProductEditSheet", () => {
         descripcion: "Audífonos Bluetooth con estuche de carga.",
       });
     });
+    expect(onOpenChange).toHaveBeenNthCalledWith(1, false);
 
     await user.type(
       within(dialog).getByLabelText("URL de nueva imagen"),
@@ -159,6 +175,7 @@ describe("ProductEditSheet", () => {
         esPrincipal: true,
       });
     });
+    expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
 
     const existingImage = await screen.findByRole("group", { name: "Imagen 1" });
     const imageUrlInput = within(existingImage).getByLabelText("URL de imagen");
@@ -173,8 +190,10 @@ describe("ProductEditSheet", () => {
         orden: 1,
       });
     });
+    expect(onOpenChange).toHaveBeenNthCalledWith(3, false);
 
     await user.click(await screen.findByRole("button", { name: "Eliminar imagen 2" }));
     await waitFor(() => expect(deletedImageId).toBe(9));
+    expect(onOpenChange).toHaveBeenNthCalledWith(4, false);
   });
 });

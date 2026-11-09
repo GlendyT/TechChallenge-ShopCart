@@ -2,8 +2,10 @@ import { useCallback, useState, type FocusEvent, type FormEvent } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronDown,
+  BriefcaseBusiness,
   LoaderCircle,
   Search,
+  ShieldCheck,
   ShoppingBag,
   UserRound,
 } from "lucide-react";
@@ -250,8 +252,23 @@ export function StoreLayout() {
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuLabel>{user.nombre}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {(user.rol === "Operador" || user.rol === "Administrador") && (
+                  <DropdownMenuItem asChild>
+                    <Link to={routePaths.operations}>Operaciones</Link>
+                  </DropdownMenuItem>
+                )}
+                {user.rol === "Administrador" && (
+                  <DropdownMenuItem asChild>
+                    <Link to={routePaths.administrationCatalog}>
+                      Administración
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {(user.rol === "Operador" || user.rol === "Administrador") && (
+                  <DropdownMenuSeparator />
+                )}
                 <DropdownMenuItem asChild>
-                  <Link to="/cuenta">Mi cuenta</Link>
+                  <Link to={routePaths.account}>Mi cuenta</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => void signOut()}>
                   Salir
@@ -259,16 +276,37 @@ export function StoreLayout() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button
-              className="col-start-5 row-start-1 text-white hover:bg-white/15 hover:text-white"
-              variant="ghost"
-              size="icon"
-              asChild
-            >
-              <Link to="/acceso" aria-label="Ingresar">
-                <UserRound aria-hidden="true" />
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="col-start-5 row-start-1 text-white hover:bg-white/15 hover:text-white"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Elegir tipo de acceso"
+                >
+                  <UserRound aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Ingresar como</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to={`${routePaths.signIn}?portal=cliente`}>
+                    <UserRound aria-hidden="true" /> Cliente
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={`${routePaths.signIn}?portal=operador`}>
+                    <BriefcaseBusiness aria-hidden="true" /> Operador
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={`${routePaths.signIn}?portal=administrador`}>
+                    <ShieldCheck aria-hidden="true" /> Administrador
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </header>

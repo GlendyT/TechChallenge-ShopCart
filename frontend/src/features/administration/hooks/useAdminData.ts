@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { catalogQueryKeys } from "../../catalog/api/catalogApi";
 import {
   adminQueryKey,
@@ -73,11 +74,12 @@ export function useAudit(params: URLSearchParams, enabled = true) {
 export function useAdminMutation<TInput, TResult = unknown>(
   mutationFn: (input: TInput) => Promise<TResult>,
   section: string,
+  successMessage?: string | ((data: TResult, input: TInput) => string),
 ) {
   const client = useQueryClient();
   return useMutation({
     mutationFn,
-    onSuccess: async () => {
+    onSuccess: async (data, input) => {
       await client.invalidateQueries({ queryKey: [...adminQueryKey, section] });
       if (["categories", "products", "coupons", "users"].includes(section))
         await client.invalidateQueries({ queryKey: auditQueryKey });
@@ -88,6 +90,13 @@ export function useAdminMutation<TInput, TResult = unknown>(
         await client.invalidateQueries({
           queryKey: catalogQueryKeys.product("").slice(0, 2),
         });
+      }
+      if (successMessage) {
+        toast.success(
+          typeof successMessage === "function"
+            ? successMessage(data, input)
+            : successMessage,
+        );
       }
     },
   });

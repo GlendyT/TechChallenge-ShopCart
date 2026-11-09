@@ -1,12 +1,18 @@
 import { createContext } from "react";
-import type { AuthSession, AuthUser, LoginInput, RegisterInput } from "./authTypes";
+import type {
+  AuthSession,
+  AuthUser,
+  LoginInput,
+  RegisterInput,
+  UserRole,
+} from "./authTypes";
 
 export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
-  signIn: (input: LoginInput) => Promise<void>;
-  signUp: (input: RegisterInput) => Promise<void>;
+  signIn: (input: LoginInput, expectedRole?: UserRole) => Promise<AuthSession>;
+  signUp: (input: RegisterInput) => Promise<AuthSession>;
   signOut: () => Promise<void>;
 }
 

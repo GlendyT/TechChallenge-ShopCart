@@ -116,16 +116,18 @@ export const setProductActive = (id: number, activo: boolean) =>
     method: "PATCH",
     body: JSON.stringify({ activo }),
   });
-export const createVariant = (data: {
+export interface CreateVariantInput {
   idProducto: number;
-  sku: string;
+  sku?: string;
   nombre: string;
   talla: string | null;
   color: string | null;
   precio: number;
   existenciaFisicaInicial: number;
-}) =>
-  apiRequest("/catalogo/variantes", {
+}
+
+export const createVariant = (data: CreateVariantInput) =>
+  apiRequest<{ IDVariante: number; SKU: string }>("/catalogo/variantes", {
     method: "POST",
     body: JSON.stringify(data),
   });
