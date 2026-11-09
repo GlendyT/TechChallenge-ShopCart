@@ -3,7 +3,7 @@ import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { submitCheckout, validateCoupon, fetchOrder } from "../../api/checkoutApi";
+import { submitCheckout,  fetchOrder } from "../../api/checkoutApi";
 import { filledCart } from "../../../../test/fixtures";
 import { useCheckout } from "../useCheckout";
 import { useOrder } from "../useOrder";
@@ -72,7 +72,7 @@ describe("checkout hooks", () => {
     await expect(result.current.mutateAsync("VERANO15")).resolves.toMatchObject({
       mensaje: "Cupón válido.",
     });
-    expect(validateCoupon.mock.calls[0]?.[0]).toBe("VERANO15");
+    expect(mocks.validateCoupon.mock.calls[0]?.[0]).toBe("VERANO15");
   });
 
   it("loads an order only when a public code is provided", async () => {

@@ -6,7 +6,6 @@ import {
   cartQueryKey,
   clearCart,
   fetchCart,
-  removeCartItem,
   updateCartItem,
 } from "../../api/cartApi";
 import { emptyCart, filledCart } from "../../../../test/fixtures";
@@ -70,7 +69,7 @@ describe("cart hooks", () => {
 
     const remove = renderHook(() => useRemoveCartItem(), { wrapper: Wrapper });
     await remove.result.current.mutateAsync(11);
-    expect(removeCartItem.mock.calls[0]?.[0]).toBe(11);
+    expect(mocks.removeCartItem.mock.calls[0]?.[0]).toBe(11);
     expect(queryClient.getQueryData(cartQueryKey)).toEqual(emptyCart);
 
     const clear = renderHook(() => useClearCart(), { wrapper: Wrapper });
