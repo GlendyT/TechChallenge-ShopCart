@@ -11,6 +11,8 @@ API REST para una plataforma de comercio electrónico. El backend está construi
 - [Backend: responsabilidades por carpeta](#backend-responsabilidades-por-carpeta)
 - [Base de datos](#base-de-datos)
 - [Requisitos y puesta en marcha](#requisitos-y-puesta-en-marcha)
+- [Frontend: estructura y funcionamiento](#frontend-estructura-y-funcionamiento)
+- [Pruebas y calidad](#pruebas-y-calidad)
 - [API HTTP](#api-http)
 - [Autenticación y autorización](#autenticación-y-autorización)
 - [Diagramas](#diagramas)
@@ -48,6 +50,7 @@ flowchart LR
 | `backend/node_modules/` | Dependencias instaladas por pnpm; no versionar. |
 | `database/` | Scripts SQL de instalación por fases y carga de datos de ejemplo. |
 | `docs/architecture-decisions/` | ADR-001, ADR-002 y ADR-003, decisiones técnicas del proyecto. |
+| `docs/decisiones-frontend.md` | Registro descriptivo de las decisiones de arquitectura, seguridad, UI y calidad del frontend. |
 | `docs/guia-pruebas-swagger-y-docker.md` | Guía operativa de comandos Docker y pruebas paso a paso en Swagger UI. |
 | `docker-compose.yml` | Define SQL Server y el backend. El backend usa la imagen publicada `glendyt/shopcart-backend:1.0.0` y conserva `build` para reconstruirla desde el código local. |
 | `backend/Dockerfile` | Construcción multi-stage de la API: instala dependencias, compila TypeScript y crea la imagen de ejecución. |
@@ -115,6 +118,7 @@ Los scripts SQL se ejecutan en orden. Los nombres de tablas y objetos se corresp
 | `database/04_stored_procedures/07_SP_Reportes_Dashboard.sql` | Consultas para dashboard e informes. |
 | `database/04_stored_procedures/08_SP_Bitacora.sql` | Escritura/consulta de eventos de auditoría. |
 | `database/05_seed/01_Seed_DatosIniciales.sql` | Datos de referencia, roles, catálogo y cuentas de demostración. |
+| `database/05_seed/02_Seed_CatalogoGeneral.sql` | Productos de demostración para electrodomésticos, tecnología, mascotas y deportes. Ejecutar después del seed inicial. |
 
 ### Entidades principales
 
@@ -184,7 +188,7 @@ docker compose ps
 
 La API queda en `http://localhost:3000`; Swagger en `/api/docs`. El backend espera a que el contenedor SQL Server responda al healthcheck. El volumen `mssql_data` conserva los datos entre reinicios. El contenedor `backend` requiere `backend/.env` para los secretos JWT; no publiques ese archivo. El `.env` raíz proporciona `DB_PASSWORD` y `DB_NAME` a Compose.
 
-**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08 y `05_seed/01_Seed_DatosIniciales.sql`. Los scripts pueden enviarse mediante `sqlcmd` ejecutando cada archivo SQL en orden contra el contenedor `shopcart-sqlserver`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
+**Inicialización de la base:** el contenedor SQL Server no ejecuta automáticamente los scripts de `database/`. Crea `ShopCartDB` y aplica, en orden, `01_schema/01_DDL_Tablas.sql`, `01_schema/02_DDL_Indices.sql`, `02_views/01_VW_VistasSistema.sql`, `03_functions/01_FU_FuncionesTabla.sql`, SP numerados del 01 al 08, `05_seed/01_Seed_DatosIniciales.sql` y `05_seed/02_Seed_CatalogoGeneral.sql`. Los scripts pueden enviarse mediante `sqlcmd` ejecutando cada archivo SQL en orden contra el contenedor `shopcart-sqlserver`; para este Compose, utiliza la contraseña que pusiste en el `.env` raíz. Tras completar la carga, el backend debe quedar healthy. No uses credenciales de ejemplo en ambientes públicos.
 
 Para detener los servicios conserva los datos con `docker compose down`; para borrar también el volumen y la base local usa `docker compose down -v` (esto elimina los datos persistidos).
 
@@ -223,6 +227,112 @@ pnpm start      # Ejecuta dist/server.js
 
 La API ofrece `GET /api/health` y Swagger UI en `http://localhost:3000/api/docs` (ajusta el puerto si cambias `PORT`). El servidor solo comienza a aceptar solicitudes cuando la conexión inicial con SQL Server tiene éxito.
 
+### Configurar y ejecutar frontend
+
+El cliente web usa React, TypeScript, Vite y pnpm. Primero inicia SQL Server, aplica los scripts de `database/` y ejecuta la API siguiendo la sección anterior. Después, desde `frontend/`:
+
+```powershell
+pnpm install
+Copy-Item .env.example .env.local
+pnpm dev
+```
+
+`VITE_API_BASE_URL` apunta por defecto a `http://localhost:3000/api`. Ajusta el valor en `.env.local` si la API usa otro host o puerto. Las variables con prefijo `VITE_` son públicas y no deben contener secretos.
+
+Comprobaciones disponibles desde `frontend/`:
+
+```powershell
+pnpm run lint
+pnpm run typecheck
+pnpm run test
+pnpm run test:e2e
+pnpm run build
+```
+
+Vitest/Testing Library y Playwright simulan las respuestas de API para que sus pruebas no dependan de SQL Server. Para usar la tienda manualmente, el backend y la base de datos deben estar encendidos.
+
+## Frontend: estructura y funcionamiento
+
+El frontend es una SPA construida con React, TypeScript y Vite. React Router selecciona las páginas; TanStack Query administra las consultas, caché e invalidación de datos; Tailwind CSS y los componentes locales de shadcn/Radix conforman la interfaz. Las llamadas HTTP se centralizan en `shared/api/httpClient.ts` y usan `credentials: "include"` para enviar las cookies de autenticación.
+
+### Flujo de renderizado y datos
+
+1. `src/main.tsx` carga los estilos globales y monta React.
+2. `src/App.tsx` instala los proveedores globales, el router y las notificaciones.
+3. `src/app/providers/AppProviders.tsx` conecta TanStack Query y `AuthProvider`.
+4. `src/app/router/AppRouter.tsx` monta las rutas públicas y privadas. `RequireAuthentication` exige una sesión; `RequireRole` limita operaciones a Operador/Administrador y administración a Administrador.
+5. Las páginas de cada feature coordinan la interfaz. Sus hooks llaman a funciones de `api/`; estas usan `apiRequest` y los tipos de `types/` describen las respuestas.
+
+Las consultas y mutaciones se implementan con TanStack Query. Después de crear, actualizar o eliminar datos, los hooks invalidan las consultas afectadas para refrescar las pantallas. Los formularios muestran errores de API y notifican las operaciones exitosas mediante Sonner.
+
+### Carpetas principales del frontend
+
+| Ruta | Responsabilidad |
+|---|---|
+| `frontend/src/app/providers/` | Proveedores globales de consultas y autenticación. |
+| `frontend/src/app/router/` | Rutas, constantes de navegación y guards de autenticación/rol. |
+| `frontend/src/components/` | Layouts de tienda y operaciones, encabezados, tablas, paginación, formularios y feedback reutilizable. |
+| `frontend/src/components/ui/` | Componentes de interfaz basados en shadcn/Radix: botones, campos, sheets, diálogos, tabs, sidebar, tablas y otros. |
+| `frontend/src/features/account/` | Perfil del cliente, pedidos propios y direcciones. |
+| `frontend/src/features/administration/` | Mantenimiento de catálogo, productos, imágenes, cupones, usuarios y bitácora. |
+| `frontend/src/features/auth/` | Formularios de registro/inicio de sesión y API de autenticación. |
+| `frontend/src/features/cart/` | Consulta, actualización y limpieza del carrito. |
+| `frontend/src/features/catalog/` | Catálogo, categorías, búsqueda, detalle de producto y agregar al carrito. |
+| `frontend/src/features/checkout/` | Validación de cupones, reserva, confirmación de compra y consulta del pedido. |
+| `frontend/src/features/operations/inventory/` | Existencias, filtros, Kardex y ajustes de inventario. |
+| `frontend/src/features/operations/orders/` | Lista de pedidos, detalle, cambios de estado, cancelaciones y devoluciones. |
+| `frontend/src/features/operations/reports/` | Reportes de ventas, productos, categorías y carritos abandonados. |
+| `frontend/src/shared/api/` | Cliente HTTP, envelope de API, errores y configuración común de sesión. |
+| `frontend/src/shared/auth/` | Contexto, proveedor, hooks, tipos y reglas de autenticación/portal. |
+| `frontend/src/shared/hooks/` | Hooks transversales, incluido debounce para búsquedas. |
+| `frontend/src/lib/` | Cliente de consultas, formato de moneda/fechas y utilidades de clases. |
+| `frontend/src/test/` | Configuración de pruebas, fixtures y servidor MSW para pruebas unitarias/funcionales. |
+| `frontend/src/**/__test__/` | Pruebas unitarias y funcionales cercanas a cada módulo, separadas del código fuente. |
+| `frontend/e2e/` | Recorridos de usuario con Playwright sobre la aplicación levantada en navegador. |
+
+Las features siguen, en general, esta separación: `api/` contiene acceso remoto, `hooks/` encapsula estado/consultas, `pages/` compone pantallas, `components/` presenta elementos de la feature y `types/` define sus contratos. No todas las features necesitan todas las carpetas.
+
+### Rutas principales de la aplicación
+
+| Ruta | Acceso | Pantalla |
+|---|---|---|
+| `/` y `/categoria/:id` | Público | Tienda y catálogo filtrado por categoría. |
+| `/producto/:codigoPublico` | Público | Detalle de producto. |
+| `/carrito` | Público | Carrito del invitado o usuario. |
+| `/acceso`, `/registro` | Público | Inicio de sesión y registro por portal/rol. |
+| `/checkout`, `/cuenta` | Usuario autenticado | Checkout y cuenta del cliente. |
+| `/operaciones`, `/operaciones/pedidos`, `/operaciones/inventario`, `/operaciones/reportes` | Operador o Administrador | Herramientas de operación. |
+| `/administracion/catalogo`, `/administracion/usuarios` | Administrador | Administración del catálogo y usuarios. |
+| `/pedido-confirmado/:codigoPublico` | Público | Confirmación y consulta del pedido. |
+
+### Variables de entorno del frontend
+
+`frontend/.env.example` documenta `VITE_API_BASE_URL`, que por defecto apunta a `http://localhost:3000/api`. Copia la plantilla a `.env.local` para desarrollo. Las variables `VITE_` se incluyen en el cliente: no guardes allí contraseñas, tokens ni secretos.
+
+## Pruebas y calidad
+
+Los scripts definidos en `frontend/package.json` se ejecutan desde `frontend/`:
+
+| Comando | Qué ejecuta |
+|---|---|
+| `pnpm run lint` | ESLint sobre el frontend. |
+| `pnpm run typecheck` | TypeScript para la aplicación y la configuración de Vite. |
+| `pnpm run test` | Pruebas unitarias/funcionales con Vitest, Testing Library y MSW. |
+| `pnpm run test:watch` | Vitest en modo interactivo. |
+| `pnpm run test:e2e` | Recorridos de navegador con Playwright/Chromium. Playwright inicia Vite en `127.0.0.1:4173`. |
+| `pnpm run build` | Verificación de compilación y bundle de producción. |
+| `pnpm run check` | Ejecuta lint, typecheck, Vitest, build y E2E en secuencia. |
+
+La primera vez que se use Playwright en una máquina, instala el navegador desde `frontend/`:
+
+```powershell
+pnpm exec playwright install chromium
+```
+
+Los E2E interceptan las solicitudes de API con fixtures y no requieren datos reales. Las pruebas manuales de compra o administración sí requieren SQL Server, el esquema/seed aplicados y el backend ejecutándose.
+
+El backend no contiene actualmente un script de pruebas automatizadas. Desde `backend/`, `pnpm run check` ejecuta ESLint, typecheck y build.
+
 ## API HTTP
 
 Todas las rutas están bajo `/api`. Las entradas se validan con Zod cuando la ruta declara esquema. Los permisos se aplican en middleware de rutas; `GET /api/health` es público.
@@ -242,10 +352,10 @@ La descripción completa de parámetros/respuestas se publica en Swagger. Los id
 
 ## Autenticación y autorización
 
-- `POST /api/auth/login` devuelve access token JWT y refresh token. El access token tiene vigencia configurable (15 min por defecto); el refresh, 7 días.
-- `POST /api/auth/refresh` renueva tokens y rota/revoca el refresh previo. `POST /logout` revoca el refresh presentado.
-- Rutas protegidas envían `Authorization: Bearer <accessToken>`.
-- Los roles sembrados son Administrador, Operador y Cliente. El middleware controla los permisos descritos en la tabla de endpoints.
+- El inicio de sesión establece cookies `shopcart_access` y `shopcart_refresh` con la bandera `HttpOnly`; el navegador las envía en solicitudes con credenciales incluidas. El frontend no lee ni guarda esos tokens en `sessionStorage`.
+- `POST /api/auth/refresh` renueva la sesión y rota el refresh token. `POST /api/auth/logout` revoca la sesión y elimina las cookies.
+- Para operaciones inseguras autenticadas, el backend valida el origen de la solicitud. El frontend debe usar el mismo origen de desarrollo configurado en `CORS_ORIGIN`.
+- Los roles son Administrador, Operador y Cliente. `RequireAuthentication`, `RequireRole` y los middlewares del backend protegen rutas y endpoints según el rol.
 - Las contraseñas se manejan con bcrypt en los servicios de autenticación; la base guarda hash, no contraseña en claro.
 
 ## Diagramas
@@ -411,6 +521,10 @@ flowchart LR
 ```
 
 ## Decisiones de arquitectura
+
+En el frontend se adoptó una SPA React/TypeScript organizada por features, con funciones y componentes compuestos en lugar de clases de dominio; TanStack Query para estado remoto; cookies `HttpOnly` para sesión; `localStorage` únicamente para identidad del carrito invitado; Tailwind con tokens `dn`; componentes shadcn/Radix y Lucide; debounce en búsquedas; URLs para imágenes en esta versión; y pruebas Vitest/Testing Library más Playwright. El razonamiento, alternativas y consecuencias están detallados en [Decisiones de arquitectura del frontend](docs/decisiones-frontend.md).
+
+El buscador de tienda usa debounce de 300 ms (no throttling), consulta sugerencias al llegar a dos caracteres y muestra hasta cinco resultados en el header. Esas sugerencias no filtran el catálogo por sí solas: Enter o el botón Buscar aplican el término en la URL y llevan a la sección de colecciones. El documento enlazado detalla el flujo, los estados y la diferencia entre debounce y throttling.
 
 - [ADR-001: identificadores internos vs. públicos](docs/architecture-decisions/ADR-001-identificadores-internos-vs-publicos.md): claves internas numéricas para relaciones eficientes; UUID `CodigoPublico` para exponer recursos sin publicar la secuencia interna.
 - [ADR-002: generación de series temporales con tally table](docs/architecture-decisions/ADR-002-generacion-series-temporales-tally-table.md): generación de periodos para reportes sin depender de bucles iterativos.

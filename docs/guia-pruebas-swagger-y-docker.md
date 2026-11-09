@@ -46,6 +46,75 @@ docker exec -i shopcart-sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U 
 
 ---
 
+### D. Aplicar un archivo de procedimientos almacenados a SQL Server en Docker
+
+Ejecuta estos comandos desde la raíz del repositorio en PowerShell. El ejemplo aplica `02_SP_Catalogo.sql` a `ShopCartDB`, usando el contenedor `shopcart-sqlserver` creado por `docker-compose.yml`.
+
+1. Confirma que SQL Server está levantado y saludable:
+
+   ```powershell
+   docker compose ps
+   ```
+
+   Debe aparecer `shopcart-sqlserver` como `healthy` y el puerto publicado `1433:1433`.
+
+2. Copia el archivo SQL al contenedor:
+
+   ```powershell
+   docker cp .\database\04_stored_procedures\02_SP_Catalogo.sql shopcart-sqlserver:/tmp/02_SP_Catalogo.sql
+   ```
+
+3. Crea un script temporal de PowerShell que invoca `sqlcmd`. Lee `MSSQL_SA_PASSWORD` desde el entorno del contenedor para no tener que escribir la contraseña en el comando ni dejarla en el historial de PowerShell:
+
+   ```powershell
+   $shopcartRunnerPath = Join-Path $env:TEMP 'shopcart-apply-catalog.sql.sh'
+   $shopcartRunnerContent = @'
+   #!/bin/sh
+   set -eu
+
+   /opt/mssql-tools18/bin/sqlcmd \
+     -S localhost \
+     -U sa \
+     -P "${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is missing}" \
+     -C \
+     -d ShopCartDB \
+     -b \
+     -i /tmp/02_SP_Catalogo.sql
+
+   /opt/mssql-tools18/bin/sqlcmd \
+     -S localhost \
+     -U sa \
+     -P "$MSSQL_SA_PASSWORD" \
+     -C \
+     -d ShopCartDB \
+     -b \
+     -Q "SET NOCOUNT ON; SELECT name FROM sys.procedures WHERE name IN ('SP_Productos_Actualizar', 'SP_ProductoImagenes_Crear', 'SP_ProductoImagenes_Actualizar', 'SP_ProductoImagenes_Eliminar') ORDER BY name;"
+   '@
+   $shopcartUtf8NoBom = New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false
+   [System.IO.File]::WriteAllText($shopcartRunnerPath, $shopcartRunnerContent, $shopcartUtf8NoBom)
+   ```
+
+4. Copia y ejecuta el script temporal:
+
+   ```powershell
+   docker cp $shopcartRunnerPath shopcart-sqlserver:/tmp/shopcart-apply-catalog.sql.sh
+   if ($LASTEXITCODE -ne 0) { throw 'No se pudo copiar el script temporal al contenedor.' }
+
+   docker exec shopcart-sqlserver sh /tmp/shopcart-apply-catalog.sql.sh
+   if ($LASTEXITCODE -ne 0) { throw 'sqlcmd reportó un error al aplicar o verificar el script.' }
+   ```
+
+   `-i` ejecuta el archivo SQL, `-C` acepta el certificado local del contenedor y `-b` hace que `sqlcmd` devuelva un código de error si falla una instrucción. La consulta final debe listar los cuatro procedimientos nuevos.
+
+5. Limpia los archivos temporales:
+
+   ```powershell
+   docker exec -u 0 shopcart-sqlserver rm -f /tmp/shopcart-apply-catalog.sql.sh /tmp/02_SP_Catalogo.sql
+   Remove-Item -LiteralPath $shopcartRunnerPath -Force
+   ```
+
+Los scripts de `database/04_stored_procedures` usan `CREATE OR ALTER PROCEDURE`, por lo que se pueden volver a ejecutar para crear o actualizar esos procedimientos. Ejecutar `02_SP_Catalogo.sql` no recrea tablas ni vuelve a cargar datos; aplica las definiciones de procedimientos de categorías, productos y variantes que contiene ese archivo. Cambia `ShopCartDB`, el nombre del contenedor o la ruta SQL si tu configuración local usa otros valores. Para aplicar otro archivo, reemplaza la ruta del `docker cp`, el nombre del archivo temporal y la ruta indicada por `-i`; ajusta también la consulta de verificación si los nombres de procedimientos son distintos.
+
 ## 2. Acceso a Swagger UI
 
 Una vez levantados los contenedores, abre en tu navegador:

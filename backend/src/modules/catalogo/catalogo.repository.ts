@@ -12,6 +12,20 @@ export interface FiltroProductosParams {
   tamanoPagina?: number;
 }
 
+interface ProductoData {
+  idCategoria: number;
+  nombre: string;
+  descripcion: string;
+}
+
+interface ImagenProductoData {
+  imagenUrl: string;
+  esPrincipal?: boolean;
+  orden?: number;
+}
+
+type ProductoImagenRecord = Record<string, unknown>;
+
 export const catalogoRepository = {
   async listarCategorias(soloActivas = true) {
     const result = await executeSP("SP_Categorias_Listar", [
@@ -168,6 +182,69 @@ export const catalogoRepository = {
         type: sql.NVarChar(sql.MAX),
         value: data.descripcion,
       },
+    ]);
+    return result.recordset[0];
+  },
+
+  async actualizarProducto(idProducto: number, data: ProductoData) {
+    const result = await executeSP("SP_Productos_Actualizar", [
+      { name: "IDProducto", type: sql.Int, value: idProducto },
+      { name: "IDCategoria", type: sql.Int, value: data.idCategoria },
+      { name: "Nombre", type: sql.NVarChar(150), value: data.nombre },
+      {
+        name: "Descripcion",
+        type: sql.NVarChar(sql.MAX),
+        value: data.descripcion,
+      },
+    ]);
+    const recordsets = result.recordsets as unknown as ProductoImagenRecord[][];
+    return {
+      anterior: recordsets[0]?.[0],
+      nuevo: recordsets[1]?.[0],
+    };
+  },
+
+  async agregarImagenProducto(idProducto: number, data: ImagenProductoData) {
+    const result = await executeSP("SP_ProductoImagenes_Crear", [
+      { name: "IDProducto", type: sql.Int, value: idProducto },
+      { name: "ImagenURL", type: sql.NVarChar(500), value: data.imagenUrl },
+      {
+        name: "EsPrincipal",
+        type: sql.Bit,
+        value: data.esPrincipal ?? null,
+      },
+      { name: "Orden", type: sql.Int, value: data.orden ?? null },
+    ]);
+    return result.recordset[0];
+  },
+
+  async actualizarImagenProducto(
+    idProducto: number,
+    idImagen: number,
+    data: ImagenProductoData,
+  ) {
+    const result = await executeSP("SP_ProductoImagenes_Actualizar", [
+      { name: "IDProducto", type: sql.Int, value: idProducto },
+      { name: "IDProductoImagen", type: sql.Int, value: idImagen },
+      { name: "ImagenURL", type: sql.NVarChar(500), value: data.imagenUrl },
+      {
+        name: "EsPrincipal",
+        type: sql.Bit,
+        value: data.esPrincipal ?? null,
+      },
+      { name: "Orden", type: sql.Int, value: data.orden ?? null },
+    ]);
+    const recordsets = result.recordsets as unknown as ProductoImagenRecord[][];
+    return {
+      anterior: recordsets[0]?.[0],
+      nuevo: recordsets[1]?.[0],
+    };
+  },
+
+  async eliminarImagenProducto(idProducto: number, idImagen: number) {
+    const result = await executeSP("SP_ProductoImagenes_Eliminar", [
+      { name: "IDProducto", type: sql.Int, value: idProducto },
+      { name: "IDProductoImagen", type: sql.Int, value: idImagen },
     ]);
     return result.recordset[0];
   },

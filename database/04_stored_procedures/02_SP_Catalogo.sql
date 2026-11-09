@@ -285,7 +285,281 @@
     END;                                                                                                            
     GO                                                                                                              
                                                                                                                     
-    CREATE OR ALTER PROCEDURE SP_Variantes_Crear                                                                    
+    CREATE OR ALTER PROCEDURE SP_Productos_Actualizar
+        @IDProducto INT,
+        @IDCategoria INT,
+        @Nombre NVARCHAR(150),
+        @Descripcion NVARCHAR(MAX)
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SET XACT_ABORT ON;
+
+        IF NOT EXISTS (SELECT 1 FROM Productos WHERE IDProducto = @IDProducto)
+        BEGIN
+            RAISERROR('El producto no existe.', 16, 1);
+            RETURN;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM Categorias WHERE IDCategoria = @IDCategoria AND Activo = 1)
+        BEGIN
+            RAISERROR('La categorí­a especificada no existe o no se encuentra activa.', 16, 1);
+            RETURN;
+        END
+
+        BEGIN TRANSACTION;
+
+        SELECT
+            IDProducto,
+            CodigoPublico,
+            IDCategoria,
+            Nombre,
+            Descripcion,
+            Activo,
+            FechaCreacion,
+            FechaModificacion
+        FROM Productos WITH (UPDLOCK, HOLDLOCK)
+        WHERE IDProducto = @IDProducto;
+
+        UPDATE Productos
+        SET
+            IDCategoria = @IDCategoria,
+            Nombre = @Nombre,
+            Descripcion = @Descripcion,
+            FechaModificacion = SYSDATETIME()
+        WHERE IDProducto = @IDProducto;
+
+        SELECT
+            IDProducto,
+            CodigoPublico,
+            IDCategoria,
+            Nombre,
+            Descripcion,
+            Activo,
+            FechaCreacion,
+            FechaModificacion
+        FROM Productos
+        WHERE IDProducto = @IDProducto;
+
+        COMMIT TRANSACTION;
+    END;
+    GO
+
+    CREATE OR ALTER PROCEDURE SP_ProductoImagenes_Crear
+        @IDProducto INT,
+        @ImagenURL NVARCHAR(500),
+        @EsPrincipal BIT = NULL,
+        @Orden INT = NULL
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SET XACT_ABORT ON;
+
+        IF NOT EXISTS (SELECT 1 FROM Productos WHERE IDProducto = @IDProducto)
+        BEGIN
+            RAISERROR('El producto no existe.', 16, 1);
+            RETURN;
+        END
+
+        DECLARE @UltimoOrden INT;
+        DECLARE @EsPrincipalFinal BIT;
+        DECLARE @OrdenFinal INT;
+        DECLARE @NuevaImagen TABLE (
+            IDProductoImagen INT,
+            IDProducto INT,
+            ImagenURL NVARCHAR(500),
+            EsPrincipal BIT,
+            Orden INT
+        );
+
+        BEGIN TRANSACTION;
+
+        SELECT @UltimoOrden = ISNULL(MAX(Orden), 0)
+        FROM ProductoImagenes WITH (UPDLOCK, HOLDLOCK)
+        WHERE IDProducto = @IDProducto;
+
+        SET @EsPrincipalFinal = CASE
+            WHEN @EsPrincipal = 1
+                OR @UltimoOrden = 0
+                OR NOT EXISTS (
+                    SELECT 1
+                    FROM ProductoImagenes
+                    WHERE IDProducto = @IDProducto AND EsPrincipal = 1
+                ) THEN 1
+            ELSE 0
+        END;
+        SET @OrdenFinal = ISNULL(@Orden, @UltimoOrden + 1);
+
+        IF @EsPrincipalFinal = 1
+        BEGIN
+            UPDATE ProductoImagenes
+            SET EsPrincipal = 0
+            WHERE IDProducto = @IDProducto;
+        END
+
+        INSERT INTO ProductoImagenes (IDProducto, ImagenURL, EsPrincipal, Orden)
+        OUTPUT
+            inserted.IDProductoImagen,
+            inserted.IDProducto,
+            inserted.ImagenURL,
+            inserted.EsPrincipal,
+            inserted.Orden
+        INTO @NuevaImagen
+        VALUES (@IDProducto, @ImagenURL, @EsPrincipalFinal, @OrdenFinal);
+
+        COMMIT TRANSACTION;
+
+        SELECT IDProductoImagen, IDProducto, ImagenURL, EsPrincipal, Orden
+        FROM @NuevaImagen;
+    END;
+    GO
+
+    CREATE OR ALTER PROCEDURE SP_ProductoImagenes_Actualizar
+        @IDProducto INT,
+        @IDProductoImagen INT,
+        @ImagenURL NVARCHAR(500),
+        @EsPrincipal BIT = NULL,
+        @Orden INT = NULL
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SET XACT_ABORT ON;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM ProductoImagenes
+            WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto
+        )
+        BEGIN
+            RAISERROR('La imagen del producto no existe.', 16, 1);
+            RETURN;
+        END
+
+        DECLARE @EraPrincipal BIT;
+
+        BEGIN TRANSACTION;
+
+        SELECT @EraPrincipal = EsPrincipal
+        FROM ProductoImagenes WITH (UPDLOCK, HOLDLOCK)
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        SELECT
+            IDProductoImagen,
+            IDProducto,
+            ImagenURL,
+            EsPrincipal,
+            Orden
+        FROM ProductoImagenes
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        IF @EsPrincipal = 1
+        BEGIN
+            UPDATE ProductoImagenes
+            SET EsPrincipal = 0
+            WHERE IDProducto = @IDProducto;
+        END
+
+        UPDATE ProductoImagenes
+        SET
+            ImagenURL = @ImagenURL,
+            EsPrincipal = CASE
+                WHEN @EsPrincipal = 1 THEN 1
+                WHEN @EsPrincipal = 0 THEN 0
+                ELSE EsPrincipal
+            END,
+            Orden = ISNULL(@Orden, Orden)
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        IF @EsPrincipal = 0 AND @EraPrincipal = 1
+        BEGIN
+            DECLARE @SiguienteImagen INT;
+
+            SELECT TOP 1 @SiguienteImagen = IDProductoImagen
+            FROM ProductoImagenes
+            WHERE IDProducto = @IDProducto AND IDProductoImagen <> @IDProductoImagen
+            ORDER BY Orden, IDProductoImagen;
+
+            IF @SiguienteImagen IS NULL
+                UPDATE ProductoImagenes SET EsPrincipal = 1 WHERE IDProductoImagen = @IDProductoImagen;
+            ELSE
+                UPDATE ProductoImagenes SET EsPrincipal = 1 WHERE IDProductoImagen = @SiguienteImagen;
+        END
+
+        SELECT
+            IDProductoImagen,
+            IDProducto,
+            ImagenURL,
+            EsPrincipal,
+            Orden
+        FROM ProductoImagenes
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        COMMIT TRANSACTION;
+    END;
+    GO
+
+    CREATE OR ALTER PROCEDURE SP_ProductoImagenes_Eliminar
+        @IDProducto INT,
+        @IDProductoImagen INT
+    AS
+    BEGIN
+        SET NOCOUNT ON;
+        SET XACT_ABORT ON;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM ProductoImagenes
+            WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto
+        )
+        BEGIN
+            RAISERROR('La imagen del producto no existe.', 16, 1);
+            RETURN;
+        END
+
+        DECLARE @ImagenEliminada TABLE (
+            IDProductoImagen INT,
+            IDProducto INT,
+            ImagenURL NVARCHAR(500),
+            EsPrincipal BIT,
+            Orden INT
+        );
+        DECLARE @EraPrincipal BIT;
+
+        BEGIN TRANSACTION;
+
+        SELECT @EraPrincipal = EsPrincipal
+        FROM ProductoImagenes WITH (UPDLOCK, HOLDLOCK)
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        DELETE FROM ProductoImagenes
+        OUTPUT
+            deleted.IDProductoImagen,
+            deleted.IDProducto,
+            deleted.ImagenURL,
+            deleted.EsPrincipal,
+            deleted.Orden
+        INTO @ImagenEliminada
+        WHERE IDProductoImagen = @IDProductoImagen AND IDProducto = @IDProducto;
+
+        IF @EraPrincipal = 1
+        BEGIN
+            DECLARE @SiguienteImagen INT;
+
+            SELECT TOP 1 @SiguienteImagen = IDProductoImagen
+            FROM ProductoImagenes
+            WHERE IDProducto = @IDProducto
+            ORDER BY Orden, IDProductoImagen;
+
+            IF @SiguienteImagen IS NOT NULL
+                UPDATE ProductoImagenes SET EsPrincipal = 1 WHERE IDProductoImagen = @SiguienteImagen;
+        END
+
+        COMMIT TRANSACTION;
+
+        SELECT IDProductoImagen, IDProducto, ImagenURL, EsPrincipal, Orden
+        FROM @ImagenEliminada;
+    END;
+    GO
+
+    CREATE OR ALTER PROCEDURE SP_Variantes_Crear
         @IDProducto INT,                                                                                            
         @SKU NVARCHAR(50),                                                                                          
         @Nombre NVARCHAR(100),                                                                                      
@@ -382,5 +656,4 @@
             RETURN;                                                                                                 
         END                                                                                                         
     END;                                                                                                            
-    GO                                                                                                              
-            
+    GO

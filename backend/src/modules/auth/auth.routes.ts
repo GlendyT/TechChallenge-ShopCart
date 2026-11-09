@@ -8,7 +8,6 @@ import { validateRequest } from "../../middlewares/validate.middleware";
 import {
   registerSchema,
   loginSchema,
-  refreshTokenSchema,
   direccionSchema,
   cambiarEstadoUsuarioSchema,
 } from "./auth.schema";
@@ -22,16 +21,8 @@ router.post(
   authController.registrar,
 );
 router.post("/login", validateRequest(loginSchema), authController.login);
-router.post(
-  "/refresh",
-  validateRequest(refreshTokenSchema),
-  authController.refresh,
-);
-router.post(
-  "/logout",
-  validateRequest(refreshTokenSchema),
-  authController.logout,
-);
+router.post("/refresh", authController.refresh);
+router.post("/logout", authController.logout);
 
 // Perfil y direcciones del usuario autenticado (RF-01, RF-06)
 router.get("/me", authenticate, authController.perfil);

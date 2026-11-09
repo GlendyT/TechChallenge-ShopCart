@@ -1,0 +1,86 @@
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
+import type { CatalogFilters, CatalogSortOrder, PriceRange } from "../types/catalogTypes";
+
+export const priceRanges: Array<{ value: PriceRange; label: string }> = [
+  { value: "all", label: "Cualquier precio" },
+  { value: "under-200", label: "Menos de Q200" },
+  { value: "200-400", label: "Q200 – Q400" },
+  { value: "over-400", label: "Más de Q400" },
+];
+
+export function useCatalogFilters() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get("categoria") ?? "";
+  const urlSearch = searchParams.get("busqueda") ?? "";
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const [lastUrlSearch, setLastUrlSearch] = useState(urlSearch);
+  const debouncedSearchInput = useDebouncedValue(searchInput);
+  const [order, setOrder] = useState<CatalogSortOrder>("RECIENTE");
+  const [page, setPage] = useState(1);
+  const [inStock, setInStock] = useState(false);
+  const [priceRange, setPriceRange] = useState<PriceRange>("all");
+
+  // If the URL search changed externally (back/forward nav), sync input during render
+  if (urlSearch !== lastUrlSearch) {
+    setLastUrlSearch(urlSearch);
+    setSearchInput(urlSearch);
+    if (page !== 1) setPage(1);
+  }
+
+  const search = debouncedSearchInput.trim();
+  const categoryState = urlCategory;
+
+  function handleSearchInput(value: string) {
+    setSearchInput(value);
+    setPage(1);
+  }
+
+  function setCategory(value: string) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (value) next.set("categoria", value);
+      else next.delete("categoria");
+      return next;
+    }, { replace: true });
+    setPage(1);
+  }
+
+  const filters = useMemo<CatalogFilters>(
+    () => ({ search, category: categoryState, order, page, inStock, priceRange }),
+    [categoryState, inStock, order, page, priceRange, search],
+  );
+
+  function clearFilters() {
+    setSearchInput("");
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("busqueda");
+      next.delete("categoria");
+      return next;
+    }, { replace: true });
+    setInStock(false);
+    setPriceRange("all");
+    setOrder("RECIENTE");
+    setPage(1);
+  }
+
+  return {
+    filters,
+    searchInput,
+    setSearchInput: handleSearchInput,
+    category: categoryState,
+    setCategory,
+    order,
+    setOrder,
+    page,
+    setPage,
+    inStock,
+    setInStock,
+    priceRange,
+    setPriceRange,
+    clearFilters,
+  };
+}
