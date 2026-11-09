@@ -317,14 +317,112 @@ export const swaggerSpec = {
         },
       },
     },
-    '/api/catalogo/productos/{codigoPublico}': {
+    '/api/catalogo/productos/{id}': {
+      put: {
+        tags: ['RF-02 Catálogo'],
+        summary: 'Actualizar nombre, categoría y descripción de producto (Solo Administrador)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'ID interno del producto', schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['idCategoria', 'nombre', 'descripcion'],
+                properties: {
+                  idCategoria: { type: 'integer', example: 1 },
+                  nombre: { type: 'string', example: 'Blazer Ejecutivo Don Arturo' },
+                  descripcion: { type: 'string', example: 'Blazer de corte clásico.' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Producto actualizado' },
+          404: { description: 'Producto o categoría no encontrado' },
+        },
+      },
       get: {
         tags: ['RF-02 Catálogo'],
         summary: 'Obtener detalle de producto, variantes con stock e imágenes por CodigoPublico (UUID)',
-        parameters: [{ name: 'codigoPublico', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'CodigoPublico (UUID)', schema: { type: 'string', format: 'uuid' } }],
         responses: {
           200: { description: 'Detalle del producto con sus variantes e imágenes' },
           404: { description: 'Producto no encontrado' },
+        },
+      },
+    },
+    '/api/catalogo/productos/{id}/imagenes': {
+      post: {
+        tags: ['RF-02 Catálogo'],
+        summary: 'Agregar URL de imagen a un producto (Solo Administrador)',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['imagenUrl'],
+                properties: {
+                  imagenUrl: { type: 'string', format: 'uri', maxLength: 500 },
+                  esPrincipal: { type: 'boolean' },
+                  orden: { type: 'integer', minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: { description: 'URL de imagen agregada' },
+          404: { description: 'Producto no encontrado' },
+        },
+      },
+    },
+    '/api/catalogo/productos/{id}/imagenes/{imagenId}': {
+      put: {
+        tags: ['RF-02 Catálogo'],
+        summary: 'Actualizar URL, orden o imagen principal (Solo Administrador)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'imagenId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['imagenUrl'],
+                properties: {
+                  imagenUrl: { type: 'string', format: 'uri', maxLength: 500 },
+                  esPrincipal: { type: 'boolean' },
+                  orden: { type: 'integer', minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Imagen actualizada' },
+          404: { description: 'Imagen no encontrada para el producto' },
+        },
+      },
+      delete: {
+        tags: ['RF-02 Catálogo'],
+        summary: 'Eliminar imagen de producto (Solo Administrador)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
+          { name: 'imagenId', in: 'path', required: true, schema: { type: 'integer' } },
+        ],
+        responses: {
+          200: { description: 'Imagen eliminada' },
+          404: { description: 'Imagen no encontrada para el producto' },
         },
       },
     },
