@@ -5,8 +5,17 @@ export const adminQueryKey = ["administration"] as const;
 export const auditQueryKey = [...adminQueryKey, "audit"] as const;
 
 export const listAdminCategories = async () => (await apiRequest<AdminCategory[]>("/catalogo/categorias?todas=true")).datos;
-export const listAdminProducts = async (search: string, page: number): Promise<AdminProductsPage> => {
-  const params = new URLSearchParams({ pagina: String(page), limite: "20", incluirInactivos: "true", orden: "NOMBRE_ASC" });
+export const listAdminProducts = async (
+  search: string,
+  page: number,
+  pageSize = 20,
+): Promise<AdminProductsPage> => {
+  const params = new URLSearchParams({
+    pagina: String(page),
+    limite: String(pageSize),
+    incluirInactivos: "true",
+    orden: "NOMBRE_ASC",
+  });
   if (search.trim()) params.set("busqueda", search.trim());
   const response = await apiRequest<AdminProduct[]>(`/catalogo/productos?${params}`);
   return { datos: response.datos, totalPaginas: response.totalPaginas ?? 1, totalRegistros: response.totalRegistros ?? 0, paginaActual: response.paginaActual ?? page };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import type { CatalogFilters, CatalogSortOrder, PriceRange } from "../types/catalogTypes";
@@ -12,38 +12,32 @@ export const priceRanges: Array<{ value: PriceRange; label: string }> = [
 
 export function useCatalogFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlSearch = searchParams.get("busqueda") ?? "";
   const urlCategory = searchParams.get("categoria") ?? "";
-  const [searchInput, setSearchInput] = useState(urlSearch);
+
+  const [searchInput, setSearchInput] = useState("");
   const debouncedSearchInput = useDebouncedValue(searchInput);
-  const [search, setSearch] = useState(urlSearch.trim());
-  const [categoryState, setCategoryState] = useState(urlCategory);
   const [order, setOrder] = useState<CatalogSortOrder>("RECIENTE");
   const [page, setPage] = useState(1);
   const [inStock, setInStock] = useState(false);
   const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
-  useEffect(() => {
-    if (debouncedSearchInput !== searchInput) return;
-    setSearch(debouncedSearchInput.trim());
-    setPage(1);
-  }, [debouncedSearchInput, searchInput]);
+  // search is always derived from the debounced input — no separate state needed
+  const search = debouncedSearchInput.trim();
+  const categoryState = urlCategory;
 
-  useEffect(() => {
-    setSearchInput(urlSearch);
-    setSearch(urlSearch.trim());
-    setCategoryState(urlCategory);
+  function handleSearchInput(value: string) {
+    setSearchInput(value);
     setPage(1);
-  }, [urlCategory, urlSearch]);
+  }
 
   function setCategory(value: string) {
-    setCategoryState(value);
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       if (value) next.set("categoria", value);
       else next.delete("categoria");
       return next;
     }, { replace: true });
+    setPage(1);
   }
 
   const filters = useMemo<CatalogFilters>(
@@ -53,8 +47,6 @@ export function useCatalogFilters() {
 
   function clearFilters() {
     setSearchInput("");
-    setSearch("");
-    setCategoryState("");
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
       next.delete("busqueda");
@@ -70,7 +62,7 @@ export function useCatalogFilters() {
   return {
     filters,
     searchInput,
-    setSearchInput,
+    setSearchInput: handleSearchInput,
     category: categoryState,
     setCategory,
     order,

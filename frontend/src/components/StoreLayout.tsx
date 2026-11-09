@@ -14,6 +14,7 @@ import { useCatalogSuggestions } from "../features/catalog/hooks/useCatalogSugge
 import type { Product } from "../features/catalog/types/catalogTypes";
 import { formatPrice } from "../lib/format";
 import { StoreBenefits } from "./StoreBenefits";
+import { routePaths } from "../app/router/routePaths";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -42,16 +43,20 @@ export function StoreLayout() {
     const params = new URLSearchParams();
     const trimmedSearch = search.trim();
     if (trimmedSearch) params.set("busqueda", trimmedSearch);
+    const pathCategory = location.pathname.match(/^\/categoria\/(\d+)$/)?.[1];
     const selectedCategory =
-      category === undefined ? currentParams.get("categoria") : category;
-    if (selectedCategory) params.set("categoria", selectedCategory);
+      category === undefined
+        ? pathCategory ?? currentParams.get("categoria")
+        : category;
     const query = params.toString();
     navigate({
-      pathname: "/",
+      pathname: selectedCategory
+        ? routePaths.category.replace(":categoryId", encodeURIComponent(selectedCategory))
+        : routePaths.home,
       search: query ? `?${query}` : "",
       hash: "#colecciones",
     });
-  }, [location.search, navigate]);
+  }, [location.pathname, location.search, navigate]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

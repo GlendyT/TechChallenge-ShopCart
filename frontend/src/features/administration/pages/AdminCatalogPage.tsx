@@ -1,105 +1,200 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, LoaderCircle, Plus, RefreshCw, Search } from "lucide-react";
-import { Badge } from "../../../components/ui/badge";
+import { useMemo, useState } from "react";
+import {
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../../components/ui/dialog";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
+import { PageHeader } from "../../../components/PageHeader";
 import { Skeleton } from "../../../components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
-import { Textarea } from "../../../components/ui/textarea";
 import { PageState } from "../../../components/feedback/PageState";
-import { formatPrice } from "../../../lib/format";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
-import { adminMutations } from "../hooks/useAdminData";
-import { useAdminCategories, useAdminCoupons, useAdminProducts, useAudit, useAdminMutation } from "../hooks/useAdminData";
-import type { AdminCategory, AdminCoupon, AdminProduct, AuditRecord } from "../types/adminTypes";
+import {
+  useAdminCategories,
+  useAdminCoupons,
+  useAdminProducts,
+  useAudit,
+} from "../hooks/useAdminData";
+import CategoriesSection from "./CategoriesSection";
+import ProductsSection from "./ProductsSection";
+import CouponsSection from "./CouponsSection";
+import AuditSection from "./AuditSection";
 
 type CatalogTab = "categorias" | "productos" | "cupones" | "bitacora";
-const tabs: { id: CatalogTab; label: string }[] = [{ id: "categorias", label: "Categorías" }, { id: "productos", label: "Productos y variantes" }, { id: "cupones", label: "Cupones" }, { id: "bitacora", label: "Bitácora" }];
-function AdminStatus({ active }: { active: boolean }) { return <Badge variant="outline" className={active ? "border-dn-azul/25 bg-dn-azul/5 text-dn-azul" : "border-dn-gris/30 bg-dn-gris/5 text-dn-gris"}>{active ? "Activo" : "Inactivo"}</Badge>; }
-function ErrorText({ children }: { children?: ReactNode }) { return children ? <p className="text-sm text-dn-rojo" role="alert">{children}</p> : null; }
-function AdminSection({ title, description, children }: { title: string; description: string; children: ReactNode }) { return <Card className="border-dn-gris/20 bg-white"><CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader><CardContent>{children}</CardContent></Card>; }
-function formatDate(value: string) { return new Intl.DateTimeFormat("es-GT", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)); }
+const tabs: { id: CatalogTab; label: string }[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "productos", label: "Productos y variantes" },
+  { id: "cupones", label: "Cupones" },
+  { id: "bitacora", label: "Bitácora" },
+];
+
+function isCatalogTab(value: string): value is CatalogTab {
+  return tabs.some((item) => item.id === value);
+}
+
 
 export function AdminCatalogPage() {
   const [tab, setTab] = useState<CatalogTab>("categorias");
   const [productSearch, setProductSearch] = useState("");
   const debouncedProductSearch = useDebouncedValue(productSearch);
   const [productPage, setProductPage] = useState(1);
+  const [productPageSize, setProductPageSize] = useState(20);
   const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(20);
   const [auditEntity, setAuditEntity] = useState("");
   const [auditAction, setAuditAction] = useState("");
   const [auditStart, setAuditStart] = useState("");
   const [auditEnd, setAuditEnd] = useState("");
   const categories = useAdminCategories();
-  const products = useAdminProducts(debouncedProductSearch, productPage, tab === "productos");
+  const products = useAdminProducts(
+    debouncedProductSearch,
+    productPage,
+    tab === "productos",
+    productPageSize,
+  );
   const coupons = useAdminCoupons(tab === "cupones");
   const auditParams = useMemo(() => {
-    const params = new URLSearchParams({ pagina: String(auditPage), limite: "25" });
+    const params = new URLSearchParams({
+      pagina: String(auditPage),
+      limite: String(auditPageSize),
+    });
     if (auditEntity) params.set("entidad", auditEntity);
     if (auditAction) params.set("accion", auditAction);
     if (auditStart) params.set("fechaInicio", `${auditStart}T00:00:00.000`);
     if (auditEnd) params.set("fechaFin", `${auditEnd}T23:59:59.999`);
     return params;
-  }, [auditPage, auditEntity, auditAction, auditStart, auditEnd]);
+  }, [auditPage, auditPageSize, auditEntity, auditAction, auditStart, auditEnd]);
   const audit = useAudit(auditParams, tab === "bitacora");
-  const sectionQueries = { categorias: categories, productos: products, cupones: coupons, bitacora: audit };
+  const sectionQueries = {
+    categorias: categories,
+    productos: products,
+    cupones: coupons,
+    bitacora: audit,
+  };
   const activeQuery = sectionQueries[tab];
-  return <section className="mx-auto max-w-7xl" aria-labelledby="admin-catalog-title">
-    <p className="text-xs font-bold uppercase tracking-[0.16em] text-dn-rojo">Administración</p>
-    <h1 id="admin-catalog-title" className="mt-2 text-3xl font-semibold tracking-tight text-dn-gris-oscuro sm:text-4xl">Catálogo y configuración</h1>
-    <p className="mt-2 text-sm text-dn-gris">Gestiona categorías, productos, variantes, cupones y consulta la bitácora de auditoría.</p>
-    <div className="mt-6 flex flex-wrap gap-2 border-b border-dn-gris/20" aria-label="Secciones de administración">
-      {tabs.map((item) => <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)} className={`border-b-2 px-3 py-2.5 text-sm font-medium transition ${tab === item.id ? "border-dn-azul text-dn-azul" : "border-transparent text-dn-gris hover:text-dn-gris-oscuro"}`}>{item.label}</button>)}
-    </div>
-    {activeQuery.isPending ? <div className="mt-5 space-y-3"><Skeleton className="h-24 w-full" /><Skeleton className="h-72 w-full" /></div>
-      : activeQuery.isError ? <div className="mt-5"><PageState icon={RefreshCw} title="No pudimos cargar esta sección" description={activeQuery.error.message} tone="error" action={<Button variant="outline" onClick={() => void activeQuery.refetch()}>Intentar de nuevo</Button>} /></div>
-      : <div className="mt-5">{tab === "categorias" && <CategoriesSection rows={categories.data ?? []} />}{tab === "productos" && <ProductsSection categories={categories.data ?? []} products={products.data?.datos ?? []} total={products.data?.totalRegistros ?? 0} totalPages={products.data?.totalPaginas ?? 1} page={productPage} onPageChange={setProductPage} search={productSearch} onSearch={(value) => { setProductSearch(value); setProductPage(1); }} />}{tab === "cupones" && <CouponsSection rows={coupons.data ?? []} categories={categories.data ?? []} />}{tab === "bitacora" && <AuditSection rows={audit.data?.datos ?? []} total={audit.data?.totalRegistros ?? 0} page={auditPage} onPageChange={setAuditPage} entity={auditEntity} onEntityChange={(value) => { setAuditEntity(value); setAuditPage(1); }} action={auditAction} onActionChange={(value) => { setAuditAction(value); setAuditPage(1); }} start={auditStart} onStartChange={(value) => { setAuditStart(value); setAuditPage(1); }} end={auditEnd} onEndChange={(value) => { setAuditEnd(value); setAuditPage(1); }} />}</div>}
-  </section>;
+  return (
+    <section aria-labelledby="admin-catalog-title">
+      <Tabs
+        value={tab}
+        onValueChange={(value) => {
+          if (isCatalogTab(value)) setTab(value);
+        }}
+        className="gap-5"
+      >
+      <PageHeader
+        className=""
+        eyebrow="Administración"
+        title="Catálogo y configuración"
+        titleId="admin-catalog-title"
+        titleContent={
+          <TabsList aria-label="Secciones de administración">
+            {tabs.map((item) => (
+              <TabsTrigger key={item.id} value={item.id}>
+                {item.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        }
+        description="Gestiona categorías, productos, variantes, cupones y consulta la bitácora de auditoría."
+      />
+      <TabsContent value={tab}>
+        {activeQuery.isPending ? (
+        <div className="mt-5 space-y-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-72 w-full" />
+        </div>
+        ) : activeQuery.isError ? (
+        <div className="mt-5">
+          <PageState
+            icon={RefreshCw}
+            title="No pudimos cargar esta sección"
+            description={activeQuery.error.message}
+            tone="error"
+            action={
+              <Button
+                variant="outline"
+                onClick={() => void activeQuery.refetch()}
+              >
+                Intentar de nuevo
+              </Button>
+            }
+          />
+        </div>
+        ) : (
+        <div className="">
+          {tab === "categorias" && (
+            <CategoriesSection rows={categories.data ?? []} />
+          )}
+          {tab === "productos" && (
+            <ProductsSection
+              categories={categories.data ?? []}
+              products={products.data?.datos ?? []}
+              total={products.data?.totalRegistros ?? 0}
+              totalPages={products.data?.totalPaginas ?? 1}
+              page={productPage}
+              pageSize={productPageSize}
+              isLoading={products.isFetching}
+              onPageChange={setProductPage}
+              onPageSizeChange={(size) => {
+                setProductPageSize(size);
+                setProductPage(1);
+              }}
+              search={productSearch}
+              onSearch={(value) => {
+                setProductSearch(value);
+                setProductPage(1);
+              }}
+            />
+          )}
+          {tab === "cupones" && (
+            <CouponsSection
+              rows={coupons.data ?? []}
+              categories={categories.data ?? []}
+            />
+          )}
+          {tab === "bitacora" && (
+            <AuditSection
+              rows={audit.data?.datos ?? []}
+              total={audit.data?.totalRegistros ?? 0}
+              page={auditPage}
+              pageSize={auditPageSize}
+              isLoading={audit.isFetching}
+              totalPages={
+                Math.max(
+                  1,
+                  Math.ceil((audit.data?.totalRegistros ?? 0) / auditPageSize),
+                )
+              }
+              onPageChange={setAuditPage}
+              onPageSizeChange={(size) => {
+                setAuditPageSize(size);
+                setAuditPage(1);
+              }}
+              entity={auditEntity}
+              onEntityChange={(value) => {
+                setAuditEntity(value);
+                setAuditPage(1);
+              }}
+              action={auditAction}
+              onActionChange={(value) => {
+                setAuditAction(value);
+                setAuditPage(1);
+              }}
+              start={auditStart}
+              onStartChange={(value) => {
+                setAuditStart(value);
+                setAuditPage(1);
+              }}
+              end={auditEnd}
+              onEndChange={(value) => {
+                setAuditEnd(value);
+                setAuditPage(1);
+              }}
+            />
+          )}
+        </div>
+        )}
+      </TabsContent>
+      </Tabs>
+    </section>
+  );
 }
-
-function CategoriesSection({ rows }: { rows: AdminCategory[] }) {
-  const [editing, setEditing] = useState<AdminCategory | null | false>(false);
-  const [name, setName] = useState(""); const [description, setDescription] = useState(""); const [parent, setParent] = useState(""); const [error, setError] = useState("");
-  const save = useAdminMutation((data: { id: number | null; nombre: string; descripcion: string | null; idCategoriaPadre: number | null; activo?: boolean }) => adminMutations.saveCategory(data.id, data), "categories");
-  const toggle = useAdminMutation((input: { id: number; activo: boolean }) => adminMutations.setCategoryActive(input.id, input.activo), "categories");
-  function open(category?: AdminCategory) { setEditing(category ?? null); setName(category?.Nombre ?? ""); setDescription(category?.Descripcion ?? ""); setParent(category?.IDCategoriaPadre ? String(category.IDCategoriaPadre) : ""); setError(""); save.reset(); }
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (parent && Number(parent) === (editing && typeof editing === "object" ? editing.IDCategoria : -1)) { setError("Una categoría no puede ser su propia categoría padre."); return; }
-    setError("");
-    try { await save.mutateAsync({ id: editing && typeof editing === "object" ? editing.IDCategoria : null, nombre: name.trim(), descripcion: description.trim() || null, idCategoriaPadre: parent ? Number(parent) : null, ...(editing && typeof editing === "object" ? { activo: editing.Activo } : {}) }); setEditing(false); } catch { /* Se presenta el error dentro del formulario. */ }
-  }
-  return <div className="space-y-4"><AdminSection title="Categorías" description="Crea categorías, cambia sus datos y controla si aparecen en el catálogo."><div className="mb-4 flex justify-end"><Button type="button" onClick={() => open()}><Plus size={15} /> Nueva categoría</Button></div><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Categoría</TableHead><TableHead>Descripción</TableHead><TableHead>Productos activos</TableHead><TableHead>Estado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.IDCategoria}><TableCell className="font-medium">{row.Nombre}{row.CategoriaPadre && <span className="block text-xs text-dn-gris">Subcategoría de {row.CategoriaPadre}</span>}</TableCell><TableCell className="max-w-sm text-xs text-dn-gris">{row.Descripcion || "—"}</TableCell><TableCell>{row.TotalProductosActivos}</TableCell><TableCell><AdminStatus active={row.Activo} /></TableCell><TableCell><div className="flex justify-end gap-2"><Button size="sm" variant="outline" onClick={() => open(row)}>Editar</Button><Button size="sm" variant="outline" disabled={toggle.isPending} onClick={() => toggle.mutate({ id: row.IDCategoria, activo: !row.Activo })}>{row.Activo ? "Desactivar" : "Activar"}</Button></div></TableCell></TableRow>)}{rows.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-dn-gris">Aún no hay categorías.</TableCell></TableRow>}</TableBody></Table></div>{toggle.error && <ErrorText>{toggle.error.message}</ErrorText>}</AdminSection>
-    <Dialog open={editing !== false} onOpenChange={(open) => { if (!open && !save.isPending) setEditing(false); }}><DialogContent><DialogHeader><DialogTitle>{editing ? "Editar categoría" : "Nueva categoría"}</DialogTitle><DialogDescription>Los cambios se guardarán en el catálogo.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)} className="space-y-4"><div className="space-y-1.5"><Label htmlFor="category-name">Nombre</Label><Input id="category-name" minLength={2} maxLength={100} value={name} onChange={(event) => setName(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="category-description">Descripción</Label><Textarea id="category-description" maxLength={255} value={description} onChange={(event) => setDescription(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="category-parent">Categoría padre</Label><Select value={parent || "NINGUNA"} onValueChange={(value) => setParent(value === "NINGUNA" ? "" : value)}><SelectTrigger id="category-parent"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="NINGUNA">Sin categoría padre</SelectItem>{rows.filter((row) => row.Activo && (!editing || typeof editing !== "object" || row.IDCategoria !== editing.IDCategoria)).map((row) => <SelectItem key={row.IDCategoria} value={String(row.IDCategoria)}>{row.Nombre}</SelectItem>)}</SelectContent></Select></div><ErrorText>{error || save.error?.message}</ErrorText><DialogFooter><Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={save.isPending}>Cerrar</Button><Button type="submit" disabled={save.isPending || name.trim().length < 2}>{save.isPending && <LoaderCircle className="animate-spin" size={15} />}Guardar categoría</Button></DialogFooter></form></DialogContent></Dialog></div>;
-}
-
-function ProductsSection({ categories, products, total, totalPages, page, onPageChange, search, onSearch }: { categories: AdminCategory[]; products: AdminProduct[]; total: number; totalPages: number; page: number; onPageChange: (page: number) => void; search: string; onSearch: (value: string) => void }) {
-  const [showProductForm, setShowProductForm] = useState(false); const [productId, setProductId] = useState(""); const [name, setName] = useState(""); const [description, setDescription] = useState(""); const [categoryId, setCategoryId] = useState("");
-  const [variantProductId, setVariantProductId] = useState(""); const [sku, setSku] = useState(""); const [variantName, setVariantName] = useState(""); const [size, setSize] = useState(""); const [color, setColor] = useState(""); const [price, setPrice] = useState(""); const [stock, setStock] = useState("0");
-  const create = useAdminMutation(adminMutations.createProduct, "products"); const variant = useAdminMutation(adminMutations.createVariant, "products"); const toggle = useAdminMutation((input: { id: number; activo: boolean }) => adminMutations.setProductActive(input.id, input.activo), "products");
-  async function submitProduct(event: FormEvent<HTMLFormElement>) { event.preventDefault(); try { const result = await create.mutateAsync({ idCategoria: Number(categoryId), nombre: name.trim(), descripcion: description.trim() }); setProductId(String(result.datos.IDProducto)); setVariantProductId(String(result.datos.IDProducto)); setShowProductForm(false); setName(""); setDescription(""); } catch { /* Error visible en formulario. */ } }
-  async function submitVariant(event: FormEvent<HTMLFormElement>) { event.preventDefault(); try { await variant.mutateAsync({ idProducto: Number(variantProductId), sku: sku.trim(), nombre: variantName.trim(), talla: size.trim() || null, color: color.trim() || null, precio: Number(price), existenciaFisicaInicial: Number(stock) }); setSku(""); setVariantName(""); setSize(""); setColor(""); setPrice(""); setStock("0"); setProductId(""); } catch { /* Error visible junto al formulario. */ } }
-  return <div className="space-y-4"><AdminSection title="Productos y variantes" description="Los productos se crean primero; las variantes incluyen precio y existencia inicial, que queda asentada en kardex."><div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label className="w-full space-y-1.5 text-xs font-medium text-dn-gris-oscuro sm:max-w-sm"><span>Buscar productos</span><span className="flex h-9 items-center gap-2 rounded-md border border-input px-3"><Search size={15} className="text-dn-gris" /><Input className="h-full border-0 px-0 shadow-none focus-visible:ring-0" value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Nombre del producto" /></span></label><Button onClick={() => setShowProductForm((value) => !value)} type="button"><Plus size={15} /> Nuevo producto</Button></div><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Producto</TableHead><TableHead>Categoría</TableHead><TableHead>Variantes</TableHead><TableHead>Stock disponible</TableHead><TableHead>Estado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader><TableBody>{products.map((item) => <TableRow key={item.IDProducto}><TableCell><strong className="block text-sm">{item.Nombre}</strong><span className="text-xs text-dn-gris">{item.CodigoPublico}</span></TableCell><TableCell>{item.Categoria}</TableCell><TableCell>{item.TotalVariantes}</TableCell><TableCell>{item.TotalStockDisponible}</TableCell><TableCell><AdminStatus active={item.Activo} /></TableCell><TableCell><div className="flex justify-end gap-2"><Button variant="outline" size="sm" onClick={() => { setVariantProductId(String(item.IDProducto)); setProductId(String(item.IDProducto)); }}>Añadir variante</Button><Button variant="outline" size="sm" disabled={toggle.isPending} onClick={() => toggle.mutate({ id: item.IDProducto, activo: !item.Activo })}>{item.Activo ? "Desactivar" : "Activar"}</Button></div></TableCell></TableRow>)}{products.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-dn-gris">No se encontraron productos.</TableCell></TableRow>}</TableBody></Table></div><div className="mt-3 flex items-center justify-between text-sm text-dn-gris"><span>{total} productos · página {page} de {totalPages}</span><div className="flex gap-2"><Button size="icon" variant="outline" aria-label="Página anterior" disabled={page <= 1} onClick={() => onPageChange(page - 1)}><ArrowLeft size={16} /></Button><Button size="icon" variant="outline" aria-label="Página siguiente" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}><ArrowRight size={16} /></Button></div></div><ErrorText>{toggle.error?.message}</ErrorText></AdminSection>
-    {(showProductForm || productId) && <div className="grid gap-4 xl:grid-cols-2">{showProductForm && <AdminSection title="Crear producto" description="El registro inicial crea el producto dentro de una categoría."><form onSubmit={(event) => void submitProduct(event)} className="space-y-3"><div className="space-y-1.5"><Label htmlFor="new-product-name">Nombre</Label><Input id="new-product-name" minLength={2} maxLength={150} value={name} onChange={(event) => setName(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="new-product-description">Descripción</Label><Textarea id="new-product-description" minLength={5} value={description} onChange={(event) => setDescription(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="new-product-category">Categoría</Label><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger id="new-product-category"><SelectValue placeholder="Selecciona categoría" /></SelectTrigger><SelectContent>{categories.filter((category) => category.Activo).map((category) => <SelectItem key={category.IDCategoria} value={String(category.IDCategoria)}>{category.Nombre}</SelectItem>)}</SelectContent></Select></div><ErrorText>{create.error?.message}</ErrorText><Button disabled={create.isPending || !categoryId}>{create.isPending && <LoaderCircle className="animate-spin" size={15} />}Crear producto</Button></form></AdminSection>}
-      {productId && <AdminSection title="Añadir variante" description="El stock inicial se registra como movimiento de inventario. "><form onSubmit={(event) => void submitVariant(event)} className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5 sm:col-span-2"><Label htmlFor="variant-product">Producto</Label><Select value={variantProductId} onValueChange={setVariantProductId}><SelectTrigger id="variant-product"><SelectValue placeholder="Selecciona producto" /></SelectTrigger><SelectContent>{products.map((item) => <SelectItem key={item.IDProducto} value={String(item.IDProducto)}>{item.Nombre}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1.5"><Label htmlFor="variant-sku">SKU</Label><Input id="variant-sku" minLength={3} maxLength={50} value={sku} onChange={(event) => setSku(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="variant-name">Nombre de variante</Label><Input id="variant-name" minLength={2} maxLength={100} value={variantName} onChange={(event) => setVariantName(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="variant-size">Talla (opcional)</Label><Input id="variant-size" maxLength={20} value={size} onChange={(event) => setSize(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="variant-color">Color (opcional)</Label><Input id="variant-color" maxLength={30} value={color} onChange={(event) => setColor(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="variant-price">Precio</Label><Input id="variant-price" type="number" min="0.01" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="variant-stock">Existencia inicial</Label><Input id="variant-stock" type="number" min="0" step="1" value={stock} onChange={(event) => setStock(event.target.value)} required /></div><div className="sm:col-span-2"><ErrorText>{variant.error?.message}</ErrorText><Button disabled={variant.isPending || !variantProductId}>{variant.isPending && <LoaderCircle className="animate-spin" size={15} />}Crear variante</Button><Button className="ml-2" variant="outline" type="button" onClick={() => setProductId("")}>Cerrar</Button></div></form></AdminSection>}</div>}
-  </div>;
-}
-
-function CouponsSection({ rows, categories }: { rows: AdminCoupon[]; categories: AdminCategory[] }) {
-  const [open, setOpen] = useState(false); const [code, setCode] = useState(""); const [type, setType] = useState<"PORCENTAJE" | "MONTO_FIJO">("PORCENTAJE"); const [value, setValue] = useState(""); const [minimum, setMinimum] = useState("0"); const [limit, setLimit] = useState("100"); const [perCustomer, setPerCustomer] = useState("1"); const [category, setCategory] = useState(""); const [start, setStart] = useState(""); const [end, setEnd] = useState("");
-  const create = useAdminMutation(adminMutations.createCoupon, "coupons"); const toggle = useAdminMutation((input: { id: number; activo: boolean }) => adminMutations.setCouponActive(input.id, input.activo), "coupons");
-  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (start >= end) return; try { await create.mutateAsync({ codigo: code.trim().toUpperCase(), tipoDescuento: type, valorDescuento: Number(value), montoMinimoCompra: Number(minimum), limiteUsosTotal: Number(limit), limiteUsosPorCliente: Number(perCustomer), idCategoria: category ? Number(category) : null, fechaInicio: new Date(start).toISOString(), fechaFin: new Date(end).toISOString() }); setOpen(false); setCode(""); setValue(""); } catch { /* Error visible en el formulario. */ } }
-  return <div className="space-y-4"><AdminSection title="Cupones" description="Crea descuentos y activa o desactiva códigos existentes."><div className="mb-4 flex justify-end"><Button onClick={() => setOpen(true)}><Plus size={15} /> Nuevo cupón</Button></div><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Código</TableHead><TableHead>Descuento</TableHead><TableHead>Usos</TableHead><TableHead>Vigencia</TableHead><TableHead>Estado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.IDCupon}><TableCell className="font-semibold">{row.Codigo}<span className="block text-xs font-normal text-dn-gris">{row.CategoriaRestringida || "Todas las categorías"}</span></TableCell><TableCell>{row.TipoDescuento === "PORCENTAJE" ? `${row.ValorDescuento}%` : formatPrice(row.ValorDescuento)}</TableCell><TableCell>{row.UsosActuales} / {row.LimiteUsosTotal}</TableCell><TableCell className="whitespace-nowrap text-xs">{formatDate(row.FechaInicio)}<span className="block">a {formatDate(row.FechaFin)}</span></TableCell><TableCell><AdminStatus active={row.Activo} /><span className="mt-1 block text-xs text-dn-gris">{row.EstadoVigencia}</span></TableCell><TableCell><Button size="sm" variant="outline" disabled={toggle.isPending} onClick={() => toggle.mutate({ id: row.IDCupon, activo: !row.Activo })}>{row.Activo ? "Desactivar" : "Activar"}</Button></TableCell></TableRow>)}{rows.length === 0 && <TableRow><TableCell colSpan={6} className="py-8 text-center text-dn-gris">Aún no hay cupones.</TableCell></TableRow>}</TableBody></Table></div><ErrorText>{toggle.error?.message}</ErrorText></AdminSection>
-    <Dialog open={open} onOpenChange={(next) => { if (!create.isPending) setOpen(next); }}><DialogContent className="max-h-[90vh] overflow-y-auto"><DialogHeader><DialogTitle>Crear cupón</DialogTitle><DialogDescription>Configura el descuento, límites y periodo de vigencia.</DialogDescription></DialogHeader><form onSubmit={(event) => void submit(event)} className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="coupon-code">Código</Label><Input id="coupon-code" minLength={3} maxLength={30} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} required /></div><div className="space-y-1.5"><Label htmlFor="coupon-type">Tipo</Label><Select value={type} onValueChange={(next) => setType(next as typeof type)}><SelectTrigger id="coupon-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PORCENTAJE">Porcentaje</SelectItem><SelectItem value="MONTO_FIJO">Monto fijo</SelectItem></SelectContent></Select></div><div className="space-y-1.5"><Label htmlFor="coupon-value">Valor</Label><Input id="coupon-value" type="number" min="0.01" max={type === "PORCENTAJE" ? 100 : undefined} step="0.01" value={value} onChange={(event) => setValue(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="coupon-minimum">Compra mínima</Label><Input id="coupon-minimum" type="number" min="0" step="0.01" value={minimum} onChange={(event) => setMinimum(event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="coupon-limit">Usos totales</Label><Input id="coupon-limit" type="number" min="1" step="1" value={limit} onChange={(event) => setLimit(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="coupon-per-customer">Usos por cliente</Label><Input id="coupon-per-customer" type="number" min="1" step="1" value={perCustomer} onChange={(event) => setPerCustomer(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="coupon-category">Categoría (opcional)</Label><Select value={category || "TODAS"} onValueChange={(next) => setCategory(next === "TODAS" ? "" : next)}><SelectTrigger id="coupon-category"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="TODAS">Todas las categorías</SelectItem>{categories.filter((item) => item.Activo).map((item) => <SelectItem key={item.IDCategoria} value={String(item.IDCategoria)}>{item.Nombre}</SelectItem>)}</SelectContent></Select></div><div className="space-y-1.5"><Label htmlFor="coupon-start">Inicio</Label><Input id="coupon-start" type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} required /></div><div className="space-y-1.5"><Label htmlFor="coupon-end">Fin</Label><Input id="coupon-end" type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} required /></div><div className="sm:col-span-2"><ErrorText>{create.error?.message || (start && end && start >= end ? "La fecha final debe ser posterior a la fecha de inicio." : undefined)}</ErrorText></div><DialogFooter className="sm:col-span-2"><Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" disabled={create.isPending || (Boolean(start && end) && start >= end)}>{create.isPending && <LoaderCircle className="animate-spin" size={15} />}Crear cupón</Button></DialogFooter></form></DialogContent></Dialog></div>;
-}
-
-function AuditSection({ rows, total, page, onPageChange, entity, onEntityChange, action, onActionChange, start, onStartChange, end, onEndChange }: { rows: AuditRecord[]; total: number; page: number; onPageChange: (page: number) => void; entity: string; onEntityChange: (value: string) => void; action: string; onActionChange: (value: string) => void; start: string; onStartChange: (value: string) => void; end: string; onEndChange: (value: string) => void }) {
-  const entities = ["Productos", "Variantes", "Cupones", "Pedidos", "Inventario", "Usuarios"];
-  const actions = ["CREAR", "MODIFICAR", "DESACTIVAR", "CAMBIO_ESTADO"];
-  return <AdminSection title="Bitácora de auditoría" description="Consulta los eventos registrados por el backend. Los resultados están ordenados del más reciente al más antiguo."><div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="space-y-1.5 text-xs font-medium text-dn-gris-oscuro"><span>Entidad</span><Select value={entity || "TODAS"} onValueChange={(value) => onEntityChange(value === "TODAS" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="TODAS">Todas las entidades</SelectItem>{entities.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></label><label className="space-y-1.5 text-xs font-medium text-dn-gris-oscuro"><span>Acción</span><Select value={action || "TODAS"} onValueChange={(value) => onActionChange(value === "TODAS" ? "" : value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="TODAS">Todas las acciones</SelectItem>{actions.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></label><label className="space-y-1.5 text-xs font-medium text-dn-gris-oscuro"><span>Desde</span><Input type="date" value={start} onChange={(event) => onStartChange(event.target.value)} /></label><label className="space-y-1.5 text-xs font-medium text-dn-gris-oscuro"><span>Hasta</span><Input type="date" value={end} onChange={(event) => onEndChange(event.target.value)} /></label></div><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Usuario</TableHead><TableHead>Entidad / registro</TableHead><TableHead>Acción</TableHead><TableHead>Valores</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.IDBitacora}><TableCell className="whitespace-nowrap text-xs">{formatDate(row.Fecha)}</TableCell><TableCell><span className="block text-xs">{row.NombreUsuario}</span><span className="text-xs text-dn-gris">{row.CorreoUsuario}</span></TableCell><TableCell>{row.Entidad}<span className="block text-xs text-dn-gris">#{row.IDRegistro}</span></TableCell><TableCell><Badge variant="outline">{row.Accion}</Badge></TableCell><TableCell className="max-w-sm"><details><summary className="cursor-pointer text-xs text-dn-azul">Ver cambios</summary><pre className="mt-2 max-h-32 max-w-sm overflow-auto whitespace-pre-wrap break-all rounded bg-dn-gris/5 p-2 text-[10px]">{JSON.stringify({ anterior: row.ValorAnterior ? safeJson(row.ValorAnterior) : null, nuevo: row.ValorNuevo ? safeJson(row.ValorNuevo) : null }, null, 2)}</pre></details></TableCell></TableRow>)}{rows.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-dn-gris">No hay registros de auditoría con esos filtros.</TableCell></TableRow>}</TableBody></Table></div><div className="mt-3 flex items-center justify-between text-sm text-dn-gris"><span>{total} registros · página {page}</span><div className="flex gap-2"><Button size="icon" variant="outline" aria-label="Página anterior" disabled={page <= 1} onClick={() => onPageChange(page - 1)}><ArrowLeft size={16} /></Button><Button size="icon" variant="outline" aria-label="Página siguiente" disabled={page * 25 >= total} onClick={() => onPageChange(page + 1)}><ArrowRight size={16} /></Button></div></div></AdminSection>;
-}
-function safeJson(value: string) { try { return JSON.parse(value); } catch { return value; } }

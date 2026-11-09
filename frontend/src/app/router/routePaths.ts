@@ -1,5 +1,6 @@
 export const routePaths = {
   home: "/",
+  category: "/categoria/:categoryId",
   product: "/producto/:codigoPublico",
   cart: "/carrito",
   signIn: "/acceso",

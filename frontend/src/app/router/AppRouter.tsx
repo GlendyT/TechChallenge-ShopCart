@@ -50,6 +50,10 @@ function AppRoutes() {
       <Route element={<StoreLayout />}>
         <Route index element={<CatalogPage />} />
         <Route
+          path={nestedRoutePath(routePaths.category)}
+          element={<CatalogPage />}
+        />
+        <Route
           path={nestedRoutePath(routePaths.product)}
           element={<ProductRoute />}
         />

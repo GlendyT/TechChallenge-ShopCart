@@ -62,7 +62,9 @@ describe('ShopCart storefront', () => {
     await waitFor(() => {
       expect(catalogQueries.some((query) => query.searchParams.get('idCategoria') === '1')).toBe(true)
     })
-    expect(screen.getByRole('button', { name: 'Explorar categoría Caballeros' })).toHaveAttribute('aria-pressed', 'true')
+    await waitFor(() => expect(window.location.pathname).toBe('/categoria/1'))
+    expect(screen.queryByRole('region', { name: 'Categorías de productos' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Caballeros' })).toBeInTheDocument()
   })
 
   it('keeps the small category card outside the main category slider', async () => {
@@ -103,6 +105,7 @@ describe('ShopCart storefront', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ver categorías' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Caballeros' }))
+    expect(window.location.pathname).toBe('/categoria/1')
     expect(await screen.findByRole('link', { name: 'Camisa Oxford Slim Fit' })).toBeInTheDocument()
     await waitFor(() => expect(catalogQueries.some((query) => query.searchParams.get('idCategoria') === '1')).toBe(true))
 

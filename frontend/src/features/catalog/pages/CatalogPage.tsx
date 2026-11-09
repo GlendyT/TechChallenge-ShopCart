@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { routePaths } from "../../../app/router/routePaths";
 import { PageState } from "../../../components/feedback/PageState";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useCategories } from "../hooks/useCategories";
@@ -10,29 +12,35 @@ import { CategoryProductSection } from "../components/CategoryProductSection";
 const CATEGORY_BATCH_SIZE = 5;
 
 export function CatalogPage() {
-  const { filters, category, setCategory } = useCatalogFilters();
+  const { filters, category } = useCatalogFilters();
+  const { categoryId } = useParams<{ categoryId: string }>();
+  const navigate = useNavigate();
+  const selectedCategory = categoryId ?? category;
   const categories = useCategories();
   const [visibleCategoryCount, setVisibleCategoryCount] = useState(
     CATEGORY_BATCH_SIZE,
   );
-  const [prevResetKey, setPrevResetKey] = useState({ category, search: filters.search });
-  if (prevResetKey.category !== category || prevResetKey.search !== filters.search) {
-    setPrevResetKey({ category, search: filters.search });
+  const [prevResetKey, setPrevResetKey] = useState(
+    `${filters.search}|${selectedCategory}`,
+  );
+  const resetKey = `${filters.search}|${selectedCategory}`;
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setVisibleCategoryCount(CATEGORY_BATCH_SIZE);
   }
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const visibleCategories = useMemo(() => {
-    const matchingCategories = category
+    const matchingCategories = selectedCategory
       ? (categories.data ?? []).filter(
-          (item) => String(item.IDCategoria) === category,
+          (item) => String(item.IDCategoria) === selectedCategory,
         )
       : (categories.data ?? []);
 
     return matchingCategories.slice(0, visibleCategoryCount);
-  }, [categories.data, category, visibleCategoryCount]);
-  const matchingCategoryCount = category
+  }, [categories.data, selectedCategory, visibleCategoryCount]);
+  const matchingCategoryCount = selectedCategory
     ? (categories.data ?? []).filter(
-        (item) => String(item.IDCategoria) === category,
+        (item) => String(item.IDCategoria) === selectedCategory,
       ).length
     : (categories.data?.length ?? 0);
 
@@ -63,14 +71,20 @@ export function CatalogPage() {
 
   return (
     <>
-      <CategoryCarousel
-        categories={categories.data ?? []}
-        selectedCategory={category}
-        isLoading={categories.isPending}
-        isError={categories.isError}
-        onSelectCategory={(categoryId) => setCategory(String(categoryId))}
-        onRetry={() => void categories.refetch()}
-      />
+      {!categoryId && (
+        <CategoryCarousel
+          categories={categories.data ?? []}
+          selectedCategory={selectedCategory}
+          isLoading={categories.isPending}
+          isError={categories.isError}
+          onSelectCategory={(id) =>
+            navigate(
+              `${routePaths.category.replace(":categoryId", String(id))}#colecciones`,
+            )
+          }
+          onRetry={() => void categories.refetch()}
+        />
+      )}
 
       <section
         id="colecciones"
@@ -97,7 +111,9 @@ export function CatalogPage() {
           />
         ) : visibleCategories.length === 0 ? (
           <p className="py-12 text-center text-sm text-dn-gris">
-            No hay categorías disponibles por el momento.
+            {selectedCategory
+              ? "No encontramos esta categoría."
+              : "No hay categorías disponibles por el momento."}
           </p>
         ) : (
           <>
