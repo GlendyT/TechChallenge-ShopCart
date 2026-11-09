@@ -128,6 +128,8 @@ jobs:
           BASE_BRANCH: ${{ steps.destination.outputs.branch }}
         shell: bash
         run: |
+          set -euo pipefail
+
           open_pr=$(gh pr list \
             --state open \
             --head "${GITHUB_REPOSITORY_OWNER}:${SOURCE_BRANCH}" \
@@ -138,9 +140,19 @@ jobs:
           if [[ -n "$open_pr" ]]; then
             echo "Pull request #$open_pr already exists; it will include the pushed commits."
           else
-            gh pr create \
+            if create_output=$(gh pr create \
               --base "$BASE_BRANCH" \
               --head "$SOURCE_BRANCH" \
               --title "Integrate $SOURCE_BRANCH into $BASE_BRANCH" \
-              --body "Frontend and backend checks passed for this branch. Please review and merge when ready."
+              --body "Frontend and backend checks passed for this branch. Please review and merge when ready." 2>&1); then
+              echo "$create_output"
+            else
+              create_status=$?
+              if grep -qi "a pull request for branch .* already exists" <<< "$create_output"; then
+                echo "A pull request from $SOURCE_BRANCH to $BASE_BRANCH already exists; skipping creation."
+              else
+                printf '%s\n' "$create_output" >&2
+                exit "$create_status"
+              fi
+            fi
           fi
