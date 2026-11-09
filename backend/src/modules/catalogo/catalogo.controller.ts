@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { catalogoRepository } from "./catalogo.repository";
+import { catalogoService } from "./catalogo.service";
 import { bitacoraRepository } from "../bitacora/bitacora.repository";
 
 export const catalogoController = {
@@ -322,7 +323,7 @@ export const catalogoController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const nueva = await catalogoRepository.crearVariante({
+      const nueva = await catalogoService.crearVariante({
         ...req.body,
         idUsuarioOperador: req.user!.idUsuario,
       });

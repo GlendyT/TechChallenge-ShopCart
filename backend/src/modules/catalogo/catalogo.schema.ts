@@ -48,7 +48,15 @@ export const productoImagenSchema = z.object({
 
 export const varianteSchema = z.object({
   idProducto: z.number().int().positive("El ID del producto es obligatorio"),
-  sku: z.string().trim().min(3, "El SKU es obligatorio").max(50),
+  sku: z
+    .string()
+    .trim()
+    .max(50, "El SKU no puede superar 50 caracteres")
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => value === undefined || value.length >= 3, {
+      message: "El SKU manual debe tener al menos 3 caracteres",
+    }),
   nombre: z
     .string()
     .trim()
