@@ -69,8 +69,8 @@ export function CategoryCarousel({
 
   return (
     <section
-      aria-labelledby="category-carousel-title"
-      className="mx-auto max-w-7xl px-2 py-8 sm:px-6 sm:py-10"
+      aria-label="Categorías de productos"
+      className=" px-2 py-8 sm:px-6 sm:py-10"
     >
       {isLoading ? (
         <div

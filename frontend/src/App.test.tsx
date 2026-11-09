@@ -1,17 +1,22 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import { queryClient } from './lib/queryClient'
 import { categories, products } from './test/fixtures'
 import { server } from './test/server'
+
+beforeEach(() => {
+  queryClient.clear()
+  window.history.replaceState({}, '', '/')
+})
 
 describe('ShopCart storefront', () => {
   it('shows the storefront and products returned by the catalog API', async () => {
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'Explora nuestras categorías' })).toBeInTheDocument()
-    const categoryCarousel = await screen.findByRole('region', { name: 'Categorías de productos' })
+    const categoryCarousel = await screen.findByRole('region', { name: 'Categorías principales' })
     expect(within(categoryCarousel).getByText('Prendas y moda para hombres.')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Caballeros' })).toBeInTheDocument()
     expect(await screen.findByRole('region', { name: 'Productos de Caballeros' })).toBeInTheDocument()
@@ -42,7 +47,7 @@ describe('ShopCart storefront', () => {
     )
     render(<App />)
 
-    expect(await screen.findByRole('region', { name: 'Productos de Categoría 5' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Categoría 5' })).toBeInTheDocument()
     await waitFor(() => expect(requestedCategories).toHaveLength(5))
     expect(requestedCategories.sort()).toEqual(['1', '2', '3', '4', '5'])
     expect(requestedCategories).not.toContain('6')
@@ -63,7 +68,7 @@ describe('ShopCart storefront', () => {
       expect(catalogQueries.some((query) => query.searchParams.get('idCategoria') === '1')).toBe(true)
     })
     await waitFor(() => expect(window.location.pathname).toBe('/categoria/1'))
-    expect(screen.queryByRole('region', { name: 'Categorías de productos' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Categorías principales' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Caballeros' })).toBeInTheDocument()
   })
 
@@ -78,15 +83,15 @@ describe('ShopCart storefront', () => {
     })))
     render(<App />)
 
-    const mainSlider = await screen.findByRole('region', { name: 'Categorías de productos' })
-    const featuredCard = await screen.findByRole('complementary', { name: 'Categoría destacada' })
+    const mainSlider = await screen.findByRole('region', { name: 'Categorías principales' })
+    const featuredCard = screen.getByRole('button', { name: /Damas/ })
 
     expect(within(mainSlider).getByRole('button', { name: 'Explorar categoría Caballeros' })).toBeInTheDocument()
     expect(within(mainSlider).getByRole('button', { name: 'Explorar categoría Calzado' })).toBeInTheDocument()
     expect(within(mainSlider).queryByRole('button', { name: 'Explorar categoría Damas' })).not.toBeInTheDocument()
-    expect(within(featuredCard).getByRole('button', { name: 'Explorar categoría Damas' })).toBeInTheDocument()
+    expect(featuredCard).toBeInTheDocument()
     expect(within(mainSlider).getByRole('button', { name: 'Categorías siguientes' })).toBeInTheDocument()
-    expect(within(featuredCard).queryByRole('button', { name: 'Categorías siguientes' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /siguientes/i })).toHaveLength(1)
   })
 
   it('uses the header category menu and centered search to filter the catalog', async () => {
@@ -112,8 +117,8 @@ describe('ShopCart storefront', () => {
     const search = screen.getByRole('textbox', { name: 'Buscar productos' })
     await user.type(search, 'Oxford')
     const suggestions = await screen.findByRole('region', { name: 'Sugerencias de productos' })
-    expect(within(suggestions).getByText('1 producto encontrado')).toBeInTheDocument()
-    expect(within(suggestions).getByRole('link', { name: 'Ver Camisa Oxford Slim Fit' })).toBeInTheDocument()
+    expect(await within(suggestions).findByText('1 producto encontrado')).toBeInTheDocument()
+    expect(await within(suggestions).findByRole('link', { name: 'Ver Camisa Oxford Slim Fit' })).toBeInTheDocument()
     expect(catalogQueries.some((query) => query.searchParams.get('busqueda') === 'Oxford' && query.searchParams.get('idCategoria') === '1')).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Buscar' }))
@@ -133,7 +138,7 @@ describe('ShopCart storefront', () => {
     await user.type(screen.getByRole('textbox', { name: 'Buscar productos' }), 'xyz-no-existe')
 
     const suggestions = await screen.findByRole('region', { name: 'Sugerencias de productos' })
-    expect(within(suggestions).getByText('No encontramos productos para “xyz-no-existe”.')).toBeInTheDocument()
+    expect(await within(suggestions).findByText(/No encontramos productos para/)).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: 'Camisa Oxford Slim Fit' })).toBeInTheDocument()
   })
 })

@@ -73,7 +73,7 @@ export function StoreLayout() {
   return (
     <div className="min-h-screen bg-white text-dn-gris-oscuro">
       <header className="sticky top-0 z-40 border-b border-dn-azul/80 bg-dn-azul text-white shadow-sm">
-        <div className="mx-auto grid min-h-16 max-w-7xl grid-cols-[auto_auto_auto_auto] grid-rows-[64px_auto] items-center gap-x-2 px-3 sm:min-h-20 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] sm:grid-rows-1 sm:gap-x-3 sm:px-6 lg:px-8">
+        <div className="mx-auto grid min-h-16 grid-cols-[auto_auto_auto_auto] grid-rows-[64px_auto] items-center gap-x-2 px-3 sm:min-h-20 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] sm:grid-rows-1 sm:gap-x-3 sm:px-6 lg:px-8">
           <Link
             className="col-start-1 row-start-1 flex shrink-0 items-center gap-2"
             to="/"

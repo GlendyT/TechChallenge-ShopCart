@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import type { CatalogFilters, CatalogSortOrder, PriceRange } from "../types/catalogTypes";
@@ -13,8 +13,9 @@ export const priceRanges: Array<{ value: PriceRange; label: string }> = [
 export function useCatalogFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCategory = searchParams.get("categoria") ?? "";
+  const urlSearch = searchParams.get("busqueda") ?? "";
 
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const debouncedSearchInput = useDebouncedValue(searchInput);
   const [order, setOrder] = useState<CatalogSortOrder>("RECIENTE");
   const [page, setPage] = useState(1);
@@ -24,6 +25,11 @@ export function useCatalogFilters() {
   // search is always derived from the debounced input — no separate state needed
   const search = debouncedSearchInput.trim();
   const categoryState = urlCategory;
+
+  useEffect(() => {
+    setSearchInput(urlSearch);
+    setPage(1);
+  }, [urlSearch]);
 
   function handleSearchInput(value: string) {
     setSearchInput(value);

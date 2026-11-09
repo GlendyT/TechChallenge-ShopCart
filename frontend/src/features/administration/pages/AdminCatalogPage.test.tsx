@@ -124,7 +124,6 @@ describe("AdminCatalogPage reusable components", () => {
     await user.click(
       within(categorySheet).getByRole("button", { name: "Cerrar" }),
     );
-
     await user.click(screen.getByRole("tab", { name: "Productos y variantes" }));
     expect(
       await screen.findByRole("table", { name: "Productos de administración" }),
@@ -136,14 +135,15 @@ describe("AdminCatalogPage reusable components", () => {
     await user.click(screen.getByRole("button", { name: "Añadir variante" }));
     const variantSheet = await screen.findByRole("dialog", { name: "Añadir variante" });
     expect(within(variantSheet).getByLabelText("SKU")).toBeInTheDocument();
-    await user.click(within(variantSheet).getByRole("button", { name: "Cancelar" }));    await user.click(screen.getByRole("combobox", { name: "Filas por página" }));
+    await user.click(within(variantSheet).getByRole("button", { name: "Cancelar" }));
+    await user.click(screen.getByRole("combobox", { name: "Filas por página" }));
     await user.click(screen.getByRole("option", { name: "50" }));
     await waitFor(() => expect(productLimits).toContain("50"));
-
     await user.click(screen.getByRole("tab", { name: "Cupones" }));
     expect(await screen.findByRole("table", { name: "Cupones" })).toBeInTheDocument();
     await user.click(screen.getByRole("combobox", { name: /Filas por/ }));
-    await user.click(screen.getByRole("option", { name: "50" }));    await user.click(screen.getByRole("button", { name: "Nuevo cupón" }));
+    await user.click(screen.getByRole("option", { name: "50" }));
+    await user.click(screen.getByRole("button", { name: "Nuevo cupón" }));
     expect(
       await screen.findByRole("dialog", { name: "Crear cupón" }),
     ).toBeInTheDocument();
@@ -153,7 +153,6 @@ describe("AdminCatalogPage reusable components", () => {
         { name: "Cancelar" },
       ),
     );
-
     await user.click(screen.getByRole("tab", { name: "Bitácora" }));
     await screen.findByRole("table", { name: "Bitácora de auditoría" });
     await user.click(screen.getByRole("combobox", { name: "Filas por página" }));

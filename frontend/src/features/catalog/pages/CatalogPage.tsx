@@ -89,7 +89,7 @@ export function CatalogPage() {
       <section
         id="colecciones"
         aria-label="Productos por categoría"
-        className="mx-auto max-w-7xl scroll-mt-24 space-y-14 px-5 pb-16 sm:space-y-20 sm:px-8 sm:pb-20"
+        className="mx-auto scroll-mt-24 space-y-14 px-5 pb-16 sm:space-y-20 sm:px-8 sm:pb-20"
       >
         {categories.isPending ? (
           <CategorySectionsSkeleton />
