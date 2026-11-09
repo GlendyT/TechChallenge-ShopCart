@@ -37,23 +37,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Unit and component tests
-        run: pnpm run test
-
-      - name: Build
-        run: pnpm run build
-
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: End to end tests
-        run: pnpm run test:e2e
+      - name: Lint, typecheck, tests and build
+        run: pnpm run check
 
       - name: Upload Playwright artifacts on failure
         if: failure()

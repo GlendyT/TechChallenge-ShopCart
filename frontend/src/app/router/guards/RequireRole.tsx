@@ -2,14 +2,24 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../../shared/auth/useAuth";
 import type { UserRole } from "../../../shared/auth/authTypes";
 import { routePaths } from "../routePaths";
+import { Skeleton } from "../../../components/ui/skeleton";
 
 interface RequireRoleProps {
   allowedRoles: readonly UserRole[];
 }
 
 export function RequireRole({ allowedRoles }: RequireRoleProps) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <main className="mx-auto flex min-h-[60vh] max-w-7xl items-center px-5 sm:px-8" aria-busy="true">
+        <Skeleton className="h-10 w-56" />
+        <span className="sr-only">Verificando sesión</span>
+      </main>
+    );
+  }
 
   if (!user) {
     return (

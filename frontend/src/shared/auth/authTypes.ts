@@ -12,8 +12,6 @@ export interface AuthUser {
 
 export interface AuthSession {
   usuario: AuthUser;
-  accessToken: string;
-  refreshToken: string;
 }
 
 export interface LoginInput {

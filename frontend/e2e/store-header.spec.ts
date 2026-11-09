@@ -15,7 +15,7 @@ test("the store header filters the catalog by category and search", async ({ pag
       IDCategoria: 1,
       Categoria: "Caballeros",
       Nombre: "Camisa Oxford Slim Fit",
-      Descripcion: "Camisa de algodÃ³n.",
+      Descripcion: "Camisa de algodón.",
       Activo: true,
       PrecioMinimo: 249,
       PrecioMaximo: 249,
@@ -45,8 +45,23 @@ test("the store header filters the catalog by category and search", async ({ pag
   await expect(page.getByRole("region", { name: "Categorías principales" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Caballeros" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Don Arturo, ir al inicio" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Ingresar" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Elegir tipo de acceso" })).toBeVisible();
   await expect(page.getByRole("link", { name: /carrito de compra/i })).toBeVisible();
+
+  await page.getByRole("button", { name: "Elegir tipo de acceso" }).click();
+  await expect(page.getByRole("menuitem", { name: "Cliente" })).toHaveAttribute(
+    "href",
+    "/acceso?portal=cliente",
+  );
+  await expect(page.getByRole("menuitem", { name: "Operador" })).toHaveAttribute(
+    "href",
+    "/acceso?portal=operador",
+  );
+  await expect(page.getByRole("menuitem", { name: "Administrador" })).toHaveAttribute(
+    "href",
+    "/acceso?portal=administrador",
+  );
+  await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: /Ver categor/ }).click();
   await page.getByRole("menuitem", { name: "Caballeros" }).click();

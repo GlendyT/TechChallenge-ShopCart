@@ -70,7 +70,7 @@ export function CategoryCarousel({
   return (
     <section
       aria-label="Categorías de productos"
-      className=" px-2 py-8 sm:px-6 sm:py-10"
+      className="w-full min-w-0 overflow-x-clip px-5 py-6 sm:px-8 sm:py-10"
     >
       {isLoading ? (
         <div
@@ -105,16 +105,16 @@ export function CategoryCarousel({
           No hay categorías disponibles por el momento.
         </p>
       ) : (
-        <div className="grid items-center gap-4 pr-1 md:grid-cols-[minmax(0,2fr)_minmax(15rem,0.85fr)]">
+        <div className="grid w-full min-w-0 max-w-full items-center gap-3 px-1 sm:gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,0.85fr)]">
           <Carousel
             aria-label="Categorías principales"
-            className="px-1 sm:px-0"
+            className="w-full min-w-0 max-w-full"
             opts={{ align: "start", loop: primaryCategories.length > 1 }}
           >
-            <CarouselContent className="py-1">
+            <CarouselContent className="min-w-0 py-1">
               {primaryCategories.map((category) => (
                 <CarouselItem
-                  className="basis-full"
+                  className="w-full min-w-0 basis-full"
                   key={category.IDCategoria}
                 >
                   <CategoryCard
@@ -175,7 +175,7 @@ function CategoryCard({
     <button
       aria-label={`Explorar categoría ${category.Nombre}`}
       aria-pressed={selected}
-      className={`group relative flex min-h-64 w-full overflow-hidden rounded-xl border bg-dn-gris-oscuro text-left shadow-sm transition duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dn-azul focus-visible:ring-offset-2 ${size === "large" ? "md:min-h-[25rem]" : "self-center md:min-h-[19rem]"} ${selected ? "border-dn-azul ring-2 ring-dn-azul" : "border-dn-gris/20"}`}
+      className={`group relative flex min-h-64 w-full min-w-0 max-w-full overflow-hidden rounded-xl border bg-dn-gris-oscuro text-left shadow-sm transition duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dn-azul focus-visible:ring-offset-2 ${size === "large" ? "md:min-h-[25rem]" : "self-center md:min-h-[19rem]"} ${selected ? "border-dn-azul ring-2 ring-dn-azul" : "border-dn-gris/20"}`}
       type="button"
       onClick={() => onSelect(category.IDCategoria)}
     >
@@ -191,18 +191,18 @@ function CategoryCard({
       />
       <span className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
       <span
-        className={`relative mt-auto flex w-full flex-col p-5 text-white sm:p-7 ${size === "large" ? "md:p-10" : "md:p-6"}`}
+        className={`relative mt-auto flex w-full min-w-0 flex-col p-4 text-white sm:p-7 ${size === "large" ? "md:p-10" : "md:p-6"}`}
       >
         <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
           Descubre la categoría
         </span>
         <span
-          className={`${size === "large" ? "mt-2 text-3xl sm:text-4xl md:text-5xl" : "mt-2 text-2xl md:text-3xl"} font-semibold tracking-tight`}
+          className={`${size === "large" ? "mt-2 break-words text-2xl sm:text-4xl md:text-5xl" : "mt-2 break-words text-2xl md:text-3xl"} font-semibold tracking-tight`}
         >
           {category.Nombre}
         </span>
         <span
-          className={`mt-2 line-clamp-2 text-sm leading-5 text-white/85 ${size === "small" ? "md:max-w-64" : "md:max-w-xl md:text-base"}`}
+          className={`mt-2 line-clamp-2 min-w-0 break-words text-sm leading-5 text-white/85 ${size === "small" ? "md:max-w-64" : "md:max-w-xl md:text-base"}`}
         >
           {description}
         </span>
