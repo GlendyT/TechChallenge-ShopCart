@@ -303,7 +303,7 @@
 
         IF NOT EXISTS (SELECT 1 FROM Categorias WHERE IDCategoria = @IDCategoria AND Activo = 1)
         BEGIN
-            RAISERROR('La categorÃ­a especificada no existe o no se encuentra activa.', 16, 1);
+            RAISERROR('La categorí­a especificada no existe o no se encuentra activa.', 16, 1);
             RETURN;
         END
 
