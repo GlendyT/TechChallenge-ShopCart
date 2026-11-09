@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebouncedValue } from "../../../shared/hooks/useDebouncedValue";
 import type { CatalogFilters, CatalogSortOrder, PriceRange } from "../types/catalogTypes";
@@ -16,20 +16,22 @@ export function useCatalogFilters() {
   const urlSearch = searchParams.get("busqueda") ?? "";
 
   const [searchInput, setSearchInput] = useState(urlSearch);
+  const [lastUrlSearch, setLastUrlSearch] = useState(urlSearch);
   const debouncedSearchInput = useDebouncedValue(searchInput);
   const [order, setOrder] = useState<CatalogSortOrder>("RECIENTE");
   const [page, setPage] = useState(1);
   const [inStock, setInStock] = useState(false);
   const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
-  // search is always derived from the debounced input — no separate state needed
+  // If the URL search changed externally (back/forward nav), sync input during render
+  if (urlSearch !== lastUrlSearch) {
+    setLastUrlSearch(urlSearch);
+    setSearchInput(urlSearch);
+    if (page !== 1) setPage(1);
+  }
+
   const search = debouncedSearchInput.trim();
   const categoryState = urlCategory;
-
-  useEffect(() => {
-    setSearchInput(urlSearch);
-    setPage(1);
-  }, [urlSearch]);
 
   function handleSearchInput(value: string) {
     setSearchInput(value);
