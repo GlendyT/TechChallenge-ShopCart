@@ -161,6 +161,133 @@ export const catalogoController = {
     }
   },
 
+  async actualizarProducto(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const idProducto = Number(req.params.id);
+      const { anterior, nuevo } = await catalogoRepository.actualizarProducto(
+        idProducto,
+        req.body,
+      );
+
+      await bitacoraRepository.registrar({
+        entidad: "Productos",
+        idRegistro: idProducto,
+        accion: "MODIFICAR",
+        valorAnterior: anterior,
+        valorNuevo: nuevo,
+        idUsuario: req.user!.idUsuario,
+        direccionIP: req.ip,
+      });
+
+      res.json({
+        ok: true,
+        mensaje: "Producto actualizado exitosamente.",
+        datos: nuevo,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async agregarImagenProducto(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const idProducto = Number(req.params.id);
+      const imagen = await catalogoRepository.agregarImagenProducto(
+        idProducto,
+        req.body,
+      );
+
+      await bitacoraRepository.registrar({
+        entidad: "Productos",
+        idRegistro: idProducto,
+        accion: "MODIFICAR",
+        valorNuevo: { imagenAgregada: imagen },
+        idUsuario: req.user!.idUsuario,
+        direccionIP: req.ip,
+      });
+
+      res.status(201).json({
+        ok: true,
+        mensaje: "Imagen agregada exitosamente.",
+        datos: imagen,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async actualizarImagenProducto(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const idProducto = Number(req.params.id);
+      const idImagen = Number(req.params.imagenId);
+      const { anterior, nuevo } =
+        await catalogoRepository.actualizarImagenProducto(
+          idProducto,
+          idImagen,
+          req.body,
+        );
+
+      await bitacoraRepository.registrar({
+        entidad: "Productos",
+        idRegistro: idProducto,
+        accion: "MODIFICAR",
+        valorAnterior: { imagen: anterior },
+        valorNuevo: { imagen: nuevo },
+        idUsuario: req.user!.idUsuario,
+        direccionIP: req.ip,
+      });
+
+      res.json({
+        ok: true,
+        mensaje: "Imagen actualizada exitosamente.",
+        datos: nuevo,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async eliminarImagenProducto(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const idProducto = Number(req.params.id);
+      const idImagen = Number(req.params.imagenId);
+      const imagen = await catalogoRepository.eliminarImagenProducto(
+        idProducto,
+        idImagen,
+      );
+
+      await bitacoraRepository.registrar({
+        entidad: "Productos",
+        idRegistro: idProducto,
+        accion: "MODIFICAR",
+        valorAnterior: { imagen },
+        valorNuevo: { imagenEliminada: true },
+        idUsuario: req.user!.idUsuario,
+        direccionIP: req.ip,
+      });
+
+      res.json({ ok: true, mensaje: "Imagen eliminada exitosamente." });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async cambiarEstadoProducto(
     req: Request,
     res: Response,

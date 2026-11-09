@@ -24,6 +24,28 @@ export const productoSchema = z.object({
   descripcion: z.string().trim().min(5, "La descripción es obligatoria"),
 });
 
+export const productoIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+export const productoImagenParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  imagenId: z.coerce.number().int().positive(),
+});
+
+const imagenUrlSchema = z
+  .string()
+  .trim()
+  .url("La imagen debe tener una URL valida")
+  .max(500, "La URL no puede superar 500 caracteres")
+  .refine((url) => /^https?:\/\//i.test(url), "La URL debe usar HTTP o HTTPS");
+
+export const productoImagenSchema = z.object({
+  imagenUrl: imagenUrlSchema,
+  esPrincipal: z.boolean().optional(),
+  orden: z.number().int().positive().optional(),
+});
+
 export const varianteSchema = z.object({
   idProducto: z.number().int().positive("El ID del producto es obligatorio"),
   sku: z.string().trim().min(3, "El SKU es obligatorio").max(50),

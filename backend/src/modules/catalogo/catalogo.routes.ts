@@ -10,6 +10,9 @@ import {
   productoSchema,
   varianteSchema,
   estadoSchema,
+  productoIdParamsSchema,
+  productoImagenParamsSchema,
+  productoImagenSchema,
 } from "./catalogo.schema";
 
 const router = Router();
@@ -52,6 +55,37 @@ router.post(
   authorizeRoles("Administrador"),
   validateRequest(productoSchema),
   catalogoController.crearProducto,
+);
+router.put(
+  "/productos/:id",
+  authenticate,
+  authorizeRoles("Administrador"),
+  validateRequest(productoIdParamsSchema, "params"),
+  validateRequest(productoSchema),
+  catalogoController.actualizarProducto,
+);
+router.post(
+  "/productos/:id/imagenes",
+  authenticate,
+  authorizeRoles("Administrador"),
+  validateRequest(productoIdParamsSchema, "params"),
+  validateRequest(productoImagenSchema),
+  catalogoController.agregarImagenProducto,
+);
+router.put(
+  "/productos/:id/imagenes/:imagenId",
+  authenticate,
+  authorizeRoles("Administrador"),
+  validateRequest(productoImagenParamsSchema, "params"),
+  validateRequest(productoImagenSchema),
+  catalogoController.actualizarImagenProducto,
+);
+router.delete(
+  "/productos/:id/imagenes/:imagenId",
+  authenticate,
+  authorizeRoles("Administrador"),
+  validateRequest(productoImagenParamsSchema, "params"),
+  catalogoController.eliminarImagenProducto,
 );
 router.patch(
   "/productos/:id/estado",
