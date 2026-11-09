@@ -11,6 +11,7 @@ export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   signIn: (input: LoginInput, expectedRole?: UserRole) => Promise<AuthSession>;
   signUp: (input: RegisterInput) => Promise<AuthSession>;
   signOut: () => Promise<void>;

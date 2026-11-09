@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { routePaths } from "../../../app/router/routePaths";
 import { PageState } from "../../../components/feedback/PageState";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -84,6 +84,23 @@ export function CatalogPage() {
           }
           onRetry={() => void categories.refetch()}
         />
+      )}
+
+      {categoryId && (
+        <nav
+          aria-label="Ruta de navegación"
+          className="mx-auto flex  items-center gap-2 px-8 pt-6 text-xs text-dn-gris/80"
+        >
+          <Link className="hover:text-dn-azul" to={routePaths.home}>
+            Tienda
+          </Link>
+          <span aria-hidden="true">/</span>
+          <span className="font-medium text-dn-gris-oscuro">
+            {categories.data?.find(
+              (item) => String(item.IDCategoria) === categoryId,
+            )?.Nombre ?? "Categoría"}
+          </span>
+        </nav>
       )}
 
       <section

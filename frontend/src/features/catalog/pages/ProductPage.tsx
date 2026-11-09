@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowUpRight, LoaderCircle, ShieldCheck, Truck } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { routePaths } from "../../../app/router/routePaths";
 import { formatPrice } from "../../../lib/format";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -72,7 +73,12 @@ export function ProductPage({ codigoPublico }: { codigoPublico: string }) {
           Tienda
         </Link>
         <span aria-hidden="true">/</span>
-        <span>{item.Categoria}</span>
+        <Link
+          className="hover:text-dn-azul"
+          to={`${routePaths.category.replace(":categoryId", String(item.IDCategoria))}#colecciones`}
+        >
+          {item.Categoria}
+        </Link>
         <span aria-hidden="true">/</span>
         <span className="font-medium text-dn-gris-oscuro">{item.Nombre}</span>
       </nav>

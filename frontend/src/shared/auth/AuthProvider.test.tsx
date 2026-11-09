@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -32,20 +32,46 @@ function RoleLoginHarness() {
   );
 }
 
+function RestoredSessionHarness() {
+  const { user, isLoading } = useAuth();
+
+  return (
+    <p data-testid="restored-user">
+      {isLoading ? "cargando" : user?.correo ?? "sin sesión"}
+    </p>
+  );
+}
+
 describe("AuthProvider portal role validation", () => {
   beforeEach(() => {
     setSession(null);
+    sessionStorage.clear();
     localStorage.removeItem("shopcart.guest-token");
   });
 
   afterEach(() => {
     setSession(null);
+    sessionStorage.clear();
     localStorage.removeItem("shopcart.guest-token");
   });
 
-  it("rejects a role mismatch and revokes the returned refresh token", async () => {
-    let revokedRefreshToken = "";
+  it("rejects a role mismatch and logs out without sending a refresh token", async () => {
+    let logoutBody = "not-called";
     server.use(
+      http.get(`${api}/auth/me`, () =>
+        HttpResponse.json({
+          ok: true,
+          datos: {
+            idUsuario: 14,
+            codigoPublico: "operator-code",
+            nombre: "Operador",
+            apellido: "Tienda",
+            correo: "operator@example.com",
+            telefono: null,
+            rol: "Operador",
+          },
+        }),
+      ),
       http.post(`${api}/auth/login`, () =>
         HttpResponse.json({
           ok: true,
@@ -59,14 +85,11 @@ describe("AuthProvider portal role validation", () => {
               telefono: null,
               rol: "Operador",
             },
-            accessToken: "operator-access-token",
-            refreshToken: "operator-refresh-token",
           },
         }),
       ),
       http.post(`${api}/auth/logout`, async ({ request }) => {
-        const body = (await request.json()) as { refreshToken: string };
-        revokedRefreshToken = body.refreshToken;
+        logoutBody = await request.text();
         return HttpResponse.json({ ok: true });
       }),
     );
@@ -84,10 +107,43 @@ describe("AuthProvider portal role validation", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Seleccionaste el acceso de Administrador, pero esta cuenta tiene el rol Operador.",
     );
-    expect(revokedRefreshToken).toBe("operator-refresh-token");
+    expect(logoutBody).toBe("");
     expect(screen.getByTestId("authenticated-role")).toHaveTextContent(
       "sin sesión",
     );
     expect(getSession()).toBeNull();
+    expect(sessionStorage.getItem("shopcart.session")).toBeNull();
+  });
+
+  it("restores the user from the cookie-backed profile without persisting a session", async () => {
+    server.use(
+      http.get(`${api}/auth/me`, () =>
+        HttpResponse.json({
+          ok: true,
+          datos: {
+            idUsuario: 1,
+            codigoPublico: "admin-code",
+            nombre: "Admin",
+            apellido: "ShopCart",
+            correo: "admin@example.com",
+            telefono: null,
+            rol: "Administrador",
+          },
+        }),
+      ),
+    );
+
+    render(
+      <AuthProvider>
+        <RestoredSessionHarness />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("restored-user")).toHaveTextContent(
+        "admin@example.com",
+      ),
+    );
+    expect(sessionStorage.getItem("shopcart.session")).toBeNull();
   });
 });

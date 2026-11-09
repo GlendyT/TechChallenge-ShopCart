@@ -68,6 +68,9 @@ describe('ShopCart storefront', () => {
       expect(catalogQueries.some((query) => query.searchParams.get('idCategoria') === '1')).toBe(true)
     })
     await waitFor(() => expect(window.location.pathname).toBe('/categoria/1'))
+    const breadcrumb = screen.getByRole('navigation', { name: 'Ruta de navegación' })
+    expect(within(breadcrumb).getByRole('link', { name: 'Tienda' })).toHaveAttribute('href', '/')
+    expect(await within(breadcrumb).findByText('Caballeros')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Categorías principales' })).not.toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Caballeros' })).toBeInTheDocument()
   })
@@ -106,7 +109,7 @@ describe('ShopCart storefront', () => {
     expect(screen.getByRole('banner')).toHaveClass('bg-dn-azul')
     expect(screen.getByRole('link', { name: /don arturo, ir al inicio/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /carrito de compra/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ingresar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Elegir tipo de acceso' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Ver categorías' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Caballeros' }))

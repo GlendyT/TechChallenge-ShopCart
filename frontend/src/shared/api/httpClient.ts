@@ -5,21 +5,14 @@ import type { AuthSession } from "../auth/authTypes";
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api"
 ).replace(/\/$/, "");
-const SESSION_KEY = "shopcart.session";
+const LEGACY_SESSION_KEY = "shopcart.session";
 const GUEST_TOKEN_KEY = "shopcart.guest-token";
 const SESSION_EVENT = "shopcart:session-change";
 
-let session: AuthSession | null = readStoredSession();
-let refreshInFlight: Promise<boolean> | null = null;
+sessionStorage.removeItem(LEGACY_SESSION_KEY);
 
-function readStoredSession(): AuthSession | null {
-  try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as AuthSession) : null;
-  } catch {
-    return null;
-  }
-}
+let session: AuthSession | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
 
 function publishSessionChange() {
   window.dispatchEvent(new Event(SESSION_EVENT));
@@ -31,8 +24,6 @@ export function getSession(): AuthSession | null {
 
 export function setSession(next: AuthSession | null) {
   session = next;
-  if (next) sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
-  else sessionStorage.removeItem(SESSION_KEY);
   publishSessionChange();
 }
 
@@ -58,31 +49,19 @@ export function getSessionEventName() {
 }
 
 async function refreshSession(): Promise<boolean> {
-  if (!session?.refreshToken) return false;
   if (refreshInFlight) return refreshInFlight;
 
   refreshInFlight = (async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: session?.refreshToken }),
+        credentials: "include",
       });
-      const payload = (await response.json()) as ApiEnvelope<{
-        accessToken: string;
-        refreshToken: string;
-      }>;
-
-      if (!response.ok || !payload.ok || !session) {
+      if (!response.ok) {
         setSession(null);
         return false;
       }
 
-      setSession({
-        ...session,
-        accessToken: payload.datos.accessToken,
-        refreshToken: payload.datos.refreshToken,
-      });
       return true;
     } catch {
       setSession(null);
@@ -100,6 +79,8 @@ interface RequestOptions extends RequestInit {
   skipRefresh?: boolean;
 }
 
+const AUTH_ENDPOINTS_WITHOUT_REFRESH = /^\/auth\/(login|register|refresh|logout)(\/|$)/;
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -109,20 +90,23 @@ export async function apiRequest<T>(
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  if (session?.accessToken && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${session.accessToken}`);
-  }
   if (guestToken) headers.set("x-guest-token", guestToken);
 
-  const send = () => fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+  const send = () =>
+    fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+      headers,
+    });
   let response = await send();
 
-  if (response.status === 401 && !skipRefresh && !path.startsWith("/auth/")) {
+  if (
+    response.status === 401 &&
+    !skipRefresh &&
+    !AUTH_ENDPOINTS_WITHOUT_REFRESH.test(path)
+  ) {
     const refreshed = await refreshSession();
-    if (refreshed && session) {
-      headers.set("Authorization", `Bearer ${session.accessToken}`);
-      response = await send();
-    }
+    if (refreshed) response = await send();
   }
 
   let payload: ApiEnvelope<T> | undefined;
@@ -130,13 +114,13 @@ export async function apiRequest<T>(
     payload = (await response.json()) as ApiEnvelope<T>;
   } catch {
     if (response.ok) {
-      throw new ApiError("La API devolvió una respuesta inesperada.", response.status);
+      throw new ApiError("La API devolvi\u00f3 una respuesta inesperada.", response.status);
     }
   }
 
   if (!response.ok || !payload?.ok) {
     throw new ApiError(
-      payload?.mensaje || "No pudimos completar la solicitud. Inténtalo de nuevo.",
+      payload?.mensaje || "No pudimos completar la solicitud. Int\u00e9ntalo de nuevo.",
       response.status,
       payload?.errores,
     );

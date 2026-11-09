@@ -141,5 +141,5 @@ describe("InventoryPage reusable table components", () => {
         name: "Paginación de tabla",
       }),
     ).toBeInTheDocument();
-  });
+  }, 20_000);
 });

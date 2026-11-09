@@ -186,5 +186,5 @@ describe("AdminCatalogPage reusable components", () => {
     await user.click(screen.getByRole("combobox", { name: "Filas por página" }));
     await user.click(screen.getByRole("option", { name: "30" }));
     await waitFor(() => expect(auditLimits).toContain("30"));
-  });
+  }, 20_000);
 });

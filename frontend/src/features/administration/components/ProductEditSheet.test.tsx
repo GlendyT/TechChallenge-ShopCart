@@ -100,19 +100,20 @@ describe("ProductEditSheet", () => {
         return HttpResponse.json({ ok: true, datos: newImage }, { status: 201 });
       }),
       http.put(`${api}/catalogo/productos/4/imagenes/8`, async ({ request }) => {
-        imageUpdate = (await request.json()) as Record<string, unknown>;
+        const update = (await request.json()) as Record<string, unknown>;
+        imageUpdate = update;
         images = images.map((image) => ({
           ...image,
           ...(image.IDProductoImagen === 8
             ? {
-                ImagenURL: imageUpdate.imagenUrl as string,
-                Orden: imageUpdate.orden as number,
+                ImagenURL: update.imagenUrl as string,
+                Orden: update.orden as number,
               }
             : {}),
           EsPrincipal:
             image.IDProductoImagen === 8
-              ? imageUpdate.esPrincipal === true
-              : imageUpdate.esPrincipal === true
+              ? update.esPrincipal === true
+              : update.esPrincipal === true
                 ? false
                 : image.EsPrincipal,
         }));
@@ -142,7 +143,7 @@ describe("ProductEditSheet", () => {
     const dialog = await screen.findByRole("dialog", {
       name: "Editar producto: Audífonos",
     });
-    const nameInput = within(dialog).getByLabelText("Nombre");
+    const nameInput = await within(dialog).findByLabelText("Nombre");
     expect(
       within(dialog).getByRole("table", { name: "Variantes de Audífonos" }),
     ).toHaveTextContent("P4-GRIS-L-01");
