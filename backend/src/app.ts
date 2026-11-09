@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env';
 import { swaggerSpec } from './config/swagger';
 import { errorHandler } from './middlewares/error.middleware';
+import { validateCookieRequestOrigin } from './middlewares/csrf.middleware';
 
 import authRoutes from './modules/auth/auth.routes';
 import catalogoRoutes from './modules/catalogo/catalogo.routes';
@@ -30,6 +31,7 @@ app.use(
   })
 );
 app.use(express.json({ limit: '1mb' }));
+app.use(validateCookieRequestOrigin);
 
 // Documentación interactiva OpenAPI 3.0 / Swagger UI
 app.use(

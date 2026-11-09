@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyAccessToken, JwtUserPayload, RolUsuario } from "../utils/jwt";
+import { ACCESS_COOKIE_NAME, readCookie } from "../utils/authCookies";
 import { AppError } from "../errors/AppError";
 
 declare global {
@@ -10,20 +11,25 @@ declare global {
   }
 }
 
+const getAccessToken = (req: Request): string | undefined => {
+  const cookieToken = readCookie(req, ACCESS_COOKIE_NAME);
+  if (cookieToken) return cookieToken;
+
+  const authHeader = req.headers.authorization;
+  return authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : undefined;
+};
+
 export const authenticate = (
   req: Request,
   _res: Response,
   next: NextFunction,
 ): void => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw new AppError("No autenticado. Se requiere un token Bearer.", 401);
-    }
-
-    const token = authHeader.split(" ")[1];
+    const token = getAccessToken(req);
     if (!token) {
-      throw new AppError("Formato de token inválido.", 401);
+      throw new AppError("No autenticado. Se requiere una sesión activa.", 401);
     }
 
     req.user = verifyAccessToken(token);
@@ -38,15 +44,12 @@ export const optionalAuthenticate = (
   _res: Response,
   next: NextFunction,
 ): void => {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split(" ")[1];
-    if (token) {
-      try {
-        req.user = verifyAccessToken(token);
-      } catch {
-        // Si el token opcional expiró o es inválido, se continúa como invitado
-      }
+  const token = getAccessToken(req);
+  if (token) {
+    try {
+      req.user = verifyAccessToken(token);
+    } catch {
+      // Token opcional expirado o inválido: la petición continúa como invitado.
     }
   }
   next();

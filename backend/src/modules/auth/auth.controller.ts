@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { authService } from "./auth.service";
 import { authRepository } from "./auth.repository";
+import {
+  REFRESH_COOKIE_NAME,
+  clearAuthCookies,
+  readCookie,
+  setAuthCookies,
+} from "../../utils/authCookies";
+import { AppError } from "../../errors/AppError";
 
 export const authController = {
   async registrar(
@@ -10,10 +17,11 @@ export const authController = {
   ): Promise<void> {
     try {
       const resultado = await authService.registrarCliente(req.body, req.ip);
+      setAuthCookies(res, resultado.accessToken, resultado.refreshToken);
       res.status(201).json({
         ok: true,
         mensaje: "Registro completado exitosamente.",
-        datos: resultado,
+        datos: { usuario: resultado.usuario },
       });
     } catch (err) {
       next(err);
@@ -24,10 +32,11 @@ export const authController = {
     try {
       const { correo, password } = req.body;
       const resultado = await authService.login(correo, password);
+      setAuthCookies(res, resultado.accessToken, resultado.refreshToken);
       res.json({
         ok: true,
         mensaje: "Inicio de sesión exitoso.",
-        datos: resultado,
+        datos: { usuario: resultado.usuario },
       });
     } catch (err) {
       next(err);
@@ -40,12 +49,16 @@ export const authController = {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+      if (!refreshToken) {
+        throw new AppError("No active refresh session was provided.", 401);
+      }
       const tokens = await authService.refresh(refreshToken);
+      setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
       res.json({
         ok: true,
         mensaje: "Sesión renovada exitosamente.",
-        datos: tokens,
+        datos: { renovada: true },
       });
     } catch (err) {
       next(err);
@@ -54,8 +67,9 @@ export const authController = {
 
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = req.body;
-      await authService.logout(refreshToken);
+      const refreshToken = readCookie(req, REFRESH_COOKIE_NAME);
+      if (refreshToken) await authService.logout(refreshToken);
+      clearAuthCookies(res);
       res.json({
         ok: true,
         mensaje: "Sesión cerrada exitosamente.",

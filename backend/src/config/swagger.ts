@@ -35,6 +35,12 @@ export const swaggerSpec = {
   ],
   components: {
     securitySchemes: {
+      cookieAuth: {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'shopcart_access',
+        description: 'Cookie HttpOnly emitida por /api/auth/login o /api/auth/register',
+      },
       bearerAuth: {
         type: 'http',
         scheme: 'bearer',
@@ -76,7 +82,7 @@ export const swaggerSpec = {
           },
         },
         responses: {
-          201: { description: 'Cliente registrado con tokens emitidos' },
+          201: { description: 'Cliente registrado; la sesión se emite en cookies HttpOnly' },
           409: { description: 'El correo ya está registrado' },
         },
       },
@@ -101,7 +107,7 @@ export const swaggerSpec = {
           },
         },
         responses: {
-          200: { description: 'Inicio de sesión exitoso (devuelve accessToken y refreshToken)' },
+          200: { description: 'Inicio de sesión exitoso; la sesión se emite en cookies HttpOnly' },
           401: { description: 'Credenciales inválidas' },
           403: { description: 'Cuenta desactivada' },
         },
@@ -111,22 +117,9 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Renovar Access Token con rotación de Refresh Token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['refreshToken'],
-                properties: {
-                  refreshToken: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
+        description: 'Lee la cookie HttpOnly de refresh y rota la sesión.',
         responses: {
-          200: { description: 'Tokens renovados exitosamente' },
+          200: { description: 'Cookies de sesión renovadas exitosamente' },
           401: { description: 'Refresh token inválido, revocado o expirado' },
         },
       },
@@ -135,20 +128,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Cerrar sesión y revocar Refresh Token',
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['refreshToken'],
-                properties: {
-                  refreshToken: { type: 'string' },
-                },
-              },
-            },
-          },
-        },
+        description: 'Revoca la sesión asociada a la cookie y limpia las cookies HttpOnly.',
         responses: {
           200: { description: 'Sesión cerrada exitosamente' },
         },
@@ -158,7 +138,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Obtener perfil del usuario autenticado',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Datos del perfil actual' },
         },
@@ -168,7 +148,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Listar direcciones de entrega del usuario autenticado',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Lista de direcciones' },
         },
@@ -176,7 +156,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Crear una nueva dirección de entrega',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -207,7 +187,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Listar usuarios del sistema (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'soloActivos', in: 'query', schema: { type: 'boolean' } },
           { name: 'busqueda', in: 'query', schema: { type: 'string' } },
@@ -221,7 +201,7 @@ export const swaggerSpec = {
       patch: {
         tags: ['RF-01 Auth y Usuarios'],
         summary: 'Activar o desactivar cuenta de usuario (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -252,7 +232,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-02 Catálogo'],
         summary: 'Crear categoría (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -295,7 +275,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-02 Catálogo'],
         summary: 'Crear producto maestro (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -321,7 +301,7 @@ export const swaggerSpec = {
       put: {
         tags: ['RF-02 Catálogo'],
         summary: 'Actualizar nombre, categoría y descripción de producto (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, description: 'ID interno del producto', schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -358,7 +338,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-02 Catálogo'],
         summary: 'Agregar URL de imagen a un producto (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -386,7 +366,7 @@ export const swaggerSpec = {
       put: {
         tags: ['RF-02 Catálogo'],
         summary: 'Actualizar URL, orden o imagen principal (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
           { name: 'imagenId', in: 'path', required: true, schema: { type: 'integer' } },
@@ -415,7 +395,7 @@ export const swaggerSpec = {
       delete: {
         tags: ['RF-02 Catálogo'],
         summary: 'Eliminar imagen de producto (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, schema: { type: 'integer' } },
           { name: 'imagenId', in: 'path', required: true, schema: { type: 'integer' } },
@@ -430,7 +410,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-02 Catálogo'],
         summary: 'Crear variante de producto con asiento inicial en Kardex (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -460,7 +440,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-03 Inventario y Kardex'],
         summary: 'Listar existencias físicas, reservadas y disponibles (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'busqueda', in: 'query', schema: { type: 'string' } },
           { name: 'idCategoria', in: 'query', schema: { type: 'integer' } },
@@ -477,7 +457,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-03 Inventario y Kardex'],
         summary: 'Consultar historial inmutable de movimientos de Kardex (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'idVariante', in: 'query', schema: { type: 'integer' } },
           { name: 'tipoMovimiento', in: 'query', schema: { type: 'string' } },
@@ -494,7 +474,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-03 Inventario y Kardex'],
         summary: 'Registrar ajuste manual de inventario con motivo obligatorio (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -522,7 +502,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-04 Carrito de Compras'],
         summary: 'Obtener carrito actual (autenticado con Bearer o invitado con x-guest-token)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'x-guest-token', in: 'header', required: false, schema: { type: 'string', example: 'guest-session-12345' } },
         ],
@@ -533,7 +513,7 @@ export const swaggerSpec = {
       delete: {
         tags: ['RF-04 Carrito de Compras'],
         summary: 'Vaciar carrito de compras',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'x-guest-token', in: 'header', required: false, schema: { type: 'string', example: 'guest-session-12345' } },
         ],
@@ -546,7 +526,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-04 Carrito de Compras'],
         summary: 'Agregar o actualizar cantidad de una variante en el carrito (valida stock disponible)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'x-guest-token', in: 'header', required: false, schema: { type: 'string', example: 'guest-session-12345' } },
         ],
@@ -575,7 +555,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-04 Carrito de Compras'],
         summary: 'Fusionar carrito de invitado al carrito del cliente al iniciar sesión',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -599,7 +579,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-05 Cupones'],
         summary: 'Listar cupones (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Listado de cupones' },
         },
@@ -607,7 +587,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-05 Cupones'],
         summary: 'Crear nuevo cupón de descuento (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -639,7 +619,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-05 Cupones'],
         summary: 'Validar y calcular descuento de un cupón sobre el carrito actual del cliente',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -664,7 +644,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Iniciar reserva temporal de existencias por 15 minutos con clave de idempotencia',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -688,7 +668,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Confirmar checkout atómico con pasarela de pago simulada (APROBADO / RECHAZADO)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -722,7 +702,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Listar historial de pedidos del cliente autenticado',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Historial de pedidos del cliente' },
         },
@@ -732,7 +712,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Listar todos los pedidos con filtros y paginación (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'estado', in: 'query', schema: { type: 'string' } },
           { name: 'busqueda', in: 'query', schema: { type: 'string' } },
@@ -749,7 +729,7 @@ export const swaggerSpec = {
       patch: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Avanzar estado del pedido validando ciclo de vida (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -780,7 +760,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Cancelar pedido antes del despacho con reintegro automático a Kardex (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -805,7 +785,7 @@ export const swaggerSpec = {
       post: {
         tags: ['RF-06 / RF-07 Checkout y Pedidos'],
         summary: 'Procesar devolución parcial o total sobre pedido entregado (Operador / Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
@@ -832,7 +812,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-08 Reportes y Dashboard'],
         summary: 'Ventas netas y ticket promedio por día, semana o mes (excluye cancelados y descuenta devoluciones)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'fechaInicio', in: 'query', schema: { type: 'string', example: '2026-10-01' } },
           { name: 'fechaFin', in: 'query', schema: { type: 'string', example: '2026-10-30' } },
@@ -847,7 +827,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-08 Reportes y Dashboard'],
         summary: 'Top 10 productos más vendidos del período',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Ranking Top 10 productos' },
         },
@@ -857,7 +837,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-08 Reportes y Dashboard'],
         summary: 'Distribución de ventas netas por categoría',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         responses: {
           200: { description: 'Ventas por categoría con porcentaje de participación' },
         },
@@ -867,7 +847,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-08 Reportes y Dashboard'],
         summary: 'Reporte de carritos abandonados (>24h de inactividad por defecto)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'minutosInactividad', in: 'query', schema: { type: 'integer', default: 1440 } },
         ],
@@ -880,7 +860,7 @@ export const swaggerSpec = {
       get: {
         tags: ['RF-09 Bitácora'],
         summary: 'Consultar bitácora inmutable filtrable por módulo/entidad (Solo Administrador)',
-        security: [{ bearerAuth: [] }],
+        security: [{ cookieAuth: [] }],
         parameters: [
           { name: 'entidad', in: 'query', schema: { type: 'string', enum: ['Productos', 'Variantes', 'Cupones', 'Pedidos', 'Inventario', 'Usuarios'] } },
           { name: 'accion', in: 'query', schema: { type: 'string', enum: ['CREAR', 'MODIFICAR', 'DESACTIVAR', 'CAMBIO_ESTADO'] } },
