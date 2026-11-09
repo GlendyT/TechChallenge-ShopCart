@@ -15,7 +15,7 @@ test("the store header filters the catalog by category and search", async ({ pag
       IDCategoria: 1,
       Categoria: "Caballeros",
       Nombre: "Camisa Oxford Slim Fit",
-      Descripcion: "Camisa de algodÃ³n.",
+      Descripcion: "Camisa de algodón.",
       Activo: true,
       PrecioMinimo: 249,
       PrecioMaximo: 249,

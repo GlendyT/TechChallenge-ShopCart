@@ -70,7 +70,7 @@ export function CategoryCarousel({
   return (
     <section
       aria-label="Categorías de productos"
-      className="mx-auto w-full max-w-7xl min-w-0 overflow-x-clip px-3 py-6 sm:px-6 sm:py-10"
+      className="w-full min-w-0 overflow-x-clip px-5 py-6 sm:px-8 sm:py-10"
     >
       {isLoading ? (
         <div
@@ -105,10 +105,10 @@ export function CategoryCarousel({
           No hay categorías disponibles por el momento.
         </p>
       ) : (
-        <div className="grid w-full min-w-0 max-w-full items-center gap-3 sm:gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,0.85fr)]">
+        <div className="grid w-full min-w-0 max-w-full items-center gap-3 px-1 sm:gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,0.85fr)]">
           <Carousel
             aria-label="Categorías principales"
-            className="w-full min-w-0 max-w-full px-1 sm:px-0"
+            className="w-full min-w-0 max-w-full"
             opts={{ align: "start", loop: primaryCategories.length > 1 }}
           >
             <CarouselContent className="min-w-0 py-1">

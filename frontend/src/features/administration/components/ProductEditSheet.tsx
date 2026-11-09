@@ -348,7 +348,7 @@ function ProductImageRow({
           alt="Vista previa"
           className="size-16 rounded border border-dn-gris/20 object-cover"
           loading="lazy"
-          src={imageUrl}
+          src={imageUrl || undefined}
         />
         {image.EsPrincipal && (
           <span className="rounded-full bg-dn-azul/10 px-2 py-1 text-xs font-medium text-dn-azul">

@@ -34,7 +34,10 @@ function CategoriesSection({ rows }: { rows: AdminCategory[] }) {
       descripcion: string | null;
       idCategoriaPadre: number | null;
       activo?: boolean;
-    }) => adminMutations.saveCategory(data.id, data),
+    }) => {
+      const { id, ...category } = data;
+      return adminMutations.saveCategory(id, category);
+    },
     "categories",
     (_result, input) =>
       input.id ? "Categoría actualizada correctamente." : "Categoría creada correctamente.",
