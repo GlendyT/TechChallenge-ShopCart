@@ -437,10 +437,10 @@ export const swaggerSpec = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['idProducto', 'sku', 'nombre', 'precio'],
+                required: ['idProducto', 'nombre', 'precio'],
                 properties: {
                   idProducto: { type: 'integer', example: 1 },
-                  sku: { type: 'string', example: 'CAM-OXF-GRIS-L' },
+                  sku: { type: 'string', minLength: 3, maxLength: 50, example: 'P42-GRIS-L-01', description: 'Opcional. Si se omite o se envia vacio, el backend lo genera.' },
                   nombre: { type: 'string', example: 'Gris / Talla L' },
                   talla: { type: 'string', example: 'L' },
                   color: { type: 'string', example: 'Gris' },
