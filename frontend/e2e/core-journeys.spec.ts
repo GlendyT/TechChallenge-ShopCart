@@ -2,6 +2,7 @@
 import { emptyCart, filledCart } from "../src/test/fixtures";
 
 const api = "**/api";
+const testPassword = "pw";
 
 const customer = {
   idUsuario: 21,
@@ -81,12 +82,12 @@ test("customer chooses the customer portal, signs in and reaches their account",
   await page.getByRole("menuitem", { name: "Cliente" }).click();
   await expect(page).toHaveURL(/\/acceso\?portal=cliente/);
   await page.getByLabel(/Correo electr/).fill(customer.correo);
-  await page.getByLabel(/Contrase/).fill("Cliente123!");
+  await page.getByLabel(/Contrase/).fill(testPassword);
   await page.getByRole("button", { name: "Ingresar" }).click();
 
   await expect(page).toHaveURL(/\/cuenta$/);
   await expect(page.getByRole("heading", { name: "Hola, Ana." })).toBeVisible();
-  expect(loginBody).toEqual({ correo: customer.correo, password: "Cliente123!" });
+  expect(loginBody).toEqual({ correo: customer.correo, password: testPassword });
 });
 
 test("customer manages a delivery address from the account", async ({ page }) => {

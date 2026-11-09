@@ -10,6 +10,7 @@ import {
 } from "../authApi";
 
 const api = "http://localhost:3000/api";
+const testPassword = "pw";
 const profile = {
   idUsuario: 7,
   codigoPublico: "user-code",
@@ -43,14 +44,14 @@ describe("authentication API", () => {
     );
 
     await expect(
-      signInRequest({ correo: "ana@example.com", password: "secret123" }),
+      signInRequest({ correo: "ana@example.com", password: testPassword }),
     ).resolves.toEqual({ usuario: profile });
 
     expect(requests).toEqual([
       {
         method: "POST",
         path: "/api/auth/login",
-        body: JSON.stringify({ correo: "ana@example.com", password: "secret123" }),
+        body: JSON.stringify({ correo: "ana@example.com", password: testPassword }),
       },
       { method: "GET", path: "/api/auth/me", body: "" },
     ]);
@@ -72,7 +73,7 @@ describe("authentication API", () => {
       nombre: "Ana",
       apellido: "López",
       correo: "ana@example.com",
-      password: "secret123",
+      password: testPassword,
       telefono: "55551234",
     };
     await expect(signUpRequest(input)).resolves.toEqual({ usuario: profile });
