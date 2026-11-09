@@ -27,12 +27,15 @@ Object.defineProperties(Element.prototype, {
 class MockIntersectionObserver implements IntersectionObserver {
   readonly root: Element | Document | null = null
   readonly rootMargin: string
+  readonly scrollMargin: string = "0px"
   readonly thresholds: ReadonlyArray<number>
+  private readonly callback: IntersectionObserverCallback
 
   constructor(
-    private readonly callback: IntersectionObserverCallback,
+    callback: IntersectionObserverCallback,
     options?: IntersectionObserverInit,
   ) {
+    this.callback = callback
     this.rootMargin = options?.rootMargin ?? "0px"
     this.thresholds = Array.isArray(options?.threshold)
       ? options.threshold
